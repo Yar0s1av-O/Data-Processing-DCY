@@ -8,7 +8,8 @@ app.use(bodyParser.json());
 
 // Endpoint for registering a new user
 app.post('/Users/register', async (req, res) => {
-    const { email, password, subscription_type_id = 1 } = req.body; // Default subscription_type_id to 1
+    const { email, password, subscription_type_id = 1, failed_login_attempts = 0 } = req.body; // Default values for subscription_type_id and failed_login_attempts
+
 
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required!' });
@@ -24,11 +25,13 @@ app.post('/Users/register', async (req, res) => {
         // Hash the password
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-        // Insert the user with subscription_type_id
+        
+        // Insert the user into the database
         const newUser = await pool.query(
-            'INSERT INTO "Users" (email, password, failed_login_attempts, subscription_type_id) VALUES ($1, $2, $3, $4, $5) RETURNING user_id, email',
-            [email, hashedPassword, 0, subscription_type_id]
+            `INSERT INTO "Users" (email, password, subscription_type_id, failed_login_attempts)
+             VALUES ($1, $2, $3, $4)
+             RETURNING user_id, email`,
+            [email, hashedPassword, subscription_type_id, failed_login_attempts]
         );
 
         res.status(201).json({
@@ -40,7 +43,6 @@ app.post('/Users/register', async (req, res) => {
         res.status(500).json({ message: 'Server error', error: err.message });
     }
 });
-
 
 // Export the app object for server.js
 module.exports = app;
