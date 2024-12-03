@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const UserService = require('./UserService');
+const ProfileService = require('./ProfileService');
 const Database = require('./Database');
 
 class App {
@@ -48,6 +49,12 @@ class App {
 
         // Attach service routes
         this.app.use('/Users', userService.getRouter());
+
+        // Initialize user-related services
+        const profileService = new ProfileService(this.db);
+
+        // Attach service routes
+        this.app.use('/Profiles', profileService.getRouter());
     }
 
     startServer() {
