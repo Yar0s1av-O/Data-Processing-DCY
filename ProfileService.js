@@ -35,6 +35,12 @@ class ProfileService {
                 [profile_photo_link, age, language, name]
             );
 
+            await this.db.query(
+                `INSERT INTO "User profile connection" (user_id, profile_id)
+                 VALUES (`+userCheck.rows[0].user_id+`, `+newProfile.rows[0].profile_id+`)`
+                
+            );
+
             res.status(201).json({
                 message: 'Profile has been created',
                 profile: { profile_id: newProfile.rows[0].profile_id,profile_photo_link: newProfile.rows[0].profile_photo_link,language: newProfile.rows[0].language, age: newProfile.rows[0].age, name: newProfile.rows[0].name },
