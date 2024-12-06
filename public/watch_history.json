@@ -1,0 +1,11 @@
+{
+    "user_id": 1,
+    "content_id": 101,
+    "content_title": "Inception",
+    "content_type": "Movie", 
+    "progress": 45.5,  
+    "duration_watched": 137, 
+    "platform": "Netflix",
+    "started_at": "2024-02-15T10:30:00Z",
+    "ended_at": "2024-02-15T12:47:00Z"
+}

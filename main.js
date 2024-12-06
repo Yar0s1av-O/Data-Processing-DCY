@@ -2,7 +2,11 @@ const express = require('express');
 const path = require('path');
 const UserService = require('./UserService');
 const ProfileService = require('./ProfileService');
+const WatchHistoryService = require('./WatchHistoryService');
 const Database = require('./Database');
+const bodyParser = require('body-parser');
+require('.env').config();
+
 
 class App {
     constructor(config) {
@@ -55,6 +59,11 @@ class App {
 
         // Attach service routes
         this.app.use('/Profiles', profileService.getRouter());
+
+        // Initialize Watch History services
+        const watchHisoryService = new WatchHistoryService(this.db);
+        //Attach Watch History routes
+        this.app.use('/WatchHistory', WatchHistoryService.getRouter());
     }
 
     startServer() {
