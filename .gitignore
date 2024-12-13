@@ -1,2 +1,5 @@
+# Ignore environment variables file
 .env
-.node_modules
+
+# Ignore dependencies folder
+node_modules/
