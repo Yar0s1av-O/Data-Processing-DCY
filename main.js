@@ -1,8 +1,9 @@
 
 const express = require('express');
 const path = require('path');
-const UserService = require('./UserService');
-const ProfileService = require('./ProfileService');
+const UserService = require('./services/UserService');
+const ProfileService = require('./services/ProfileService');
+
 const Database = require('./Database');
 
 class App {
