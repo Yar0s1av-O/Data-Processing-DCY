@@ -1,4 +1,3 @@
-
 require('dotenv').config(); // Load environment variables
 const express = require('express');
 const path = require('path');
@@ -6,6 +5,7 @@ const Database = require('./Database'); // Database connection
 const UserService = require('./services/UserService'); // User service
 const ProfileService = require('./services/ProfileService'); // Profile service
 const AuthService = require('./services/AuthService'); // Google OAuth service
+const ExportService = require('./services/ExportService'); // Export service
 
 class App {
     constructor(config) {
@@ -52,6 +52,10 @@ class App {
 
         // Initialize AuthService (Google OAuth)
         new AuthService(this.app, userService, this.db);
+
+        // Initialize ExportService
+        const exportService = new ExportService(this.db);
+        this.app.use('/exports', exportService.getRouter());
     }
 
     startServer() {
