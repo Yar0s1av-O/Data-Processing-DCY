@@ -1,10 +1,11 @@
 
+require('dotenv').config(); // Load environment variables
 const express = require('express');
 const path = require('path');
-const UserService = require('./services/UserService');
-const ProfileService = require('./services/ProfileService');
-
-const Database = require('./Database');
+const Database = require('./Database'); // Database connection
+const UserService = require('./services/UserService'); // User service
+const ProfileService = require('./services/ProfileService'); // Profile service
+const AuthService = require('./services/AuthService'); // Google OAuth service
 
 class App {
     constructor(config) {
@@ -33,30 +34,24 @@ class App {
     }
 
     setupMiddleware() {
-        // Parse JSON requests
+        // Middleware to parse JSON requests
         this.app.use(express.json());
 
-        // Serve static files
+        // Serve static files (e.g., index.html, script.js)
         this.app.use(express.static(path.join(__dirname, 'public')));
-
-        // Default route
-        this.app.get('/', (req, res) => {
-            res.sendFile(path.join(__dirname, 'public', 'index.html'));
-        });
     }
 
     initializeServices() {
-        // Initialize user-related services
+        // Initialize UserService
         const userService = new UserService(this.db);
+        this.app.use('/users', userService.getRouter());
 
-        // Attach service routes
-        this.app.use('/Users', userService.getRouter());
-
-        // Initialize user-related services
+        // Initialize ProfileService
         const profileService = new ProfileService(this.db);
+        this.app.use('/profiles', profileService.getRouter());
 
-        // Attach service routes
-        this.app.use('/Profiles', profileService.getRouter());
+        // Initialize AuthService (Google OAuth)
+        new AuthService(this.app, userService, this.db);
     }
 
     startServer() {
@@ -77,11 +72,11 @@ class App {
 const config = {
     port: process.env.PORT || 4000,
     dbConfig: {
-        user: 'postgres',
-        host: 'localhost',
-        database: 'postgres',
-        password: 'Dera1372@',
-        port: 5432,
+        user: process.env.DB_USER || 'postgres',
+        host: process.env.DB_HOST || 'localhost',
+        database: process.env.DB_NAME || 'postgres',
+        password: process.env.DB_PASSWORD || 'Dera1372@',
+        port: process.env.DB_PORT || 5432,
     },
 };
 

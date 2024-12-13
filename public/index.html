@@ -8,6 +8,8 @@
 </head>
 <body>
     <h1>User Registration</h1>
+
+    <!-- User Registration Form -->
     <form id="register-form">
         <label for="email">Email:</label>
         <input type="email" id="email" name="email" required>
@@ -19,6 +21,13 @@
     </form>
     <p id="message"></p>
 
+    <!-- Google OAuth Login -->
+    <h2>Or Login with Google</h2>
+    <a href="/auth/google">
+        <button type="button">Login with Google</button>
+    </a>
+
+    <!-- Script for handling form submission -->
     <script src="script.js"></script>
 </body>
 </html>

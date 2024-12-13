@@ -71,6 +71,33 @@ class UserService {
         }
     }
 
+    async addUserThroughOAuth(profile) {
+        const email = profile.emails[0].value; // Extract email from Google profile
+        const subscription_type_id = 1; // Default subscription type
+        const failed_login_attempts = 0;
+
+        try {
+            // Check if the user already exists
+            const userCheck = await this.db.query('SELECT * FROM "Users" WHERE email = $1', [email]);
+            if (userCheck.rows.length > 0) {
+                return userCheck.rows[0]; // Return the existing user
+            }
+
+            // Insert the OAuth user into the database
+            const newUser = await this.db.query(
+                `INSERT INTO "Users" (email, password, subscription_type_id, failed_login_attempts)
+                 VALUES ($1, $2, $3, $4)
+                 RETURNING user_id, email`,
+                [email, 'google_oauth_user', subscription_type_id, failed_login_attempts]
+            );
+
+            return newUser.rows[0]; // Return the newly created user
+        } catch (err) {
+            console.error('Error during OAuth user insertion:', err.stack);
+            throw err;
+        }
+    }
+
     getRouter() {
         return this.router; // Expose the router
     }
