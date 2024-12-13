@@ -1,3 +1,4 @@
+
 document.getElementById('register-form').addEventListener('submit', async (e) => {
     e.preventDefault(); // Prevent the form from submitting normally
 

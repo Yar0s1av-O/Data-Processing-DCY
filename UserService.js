@@ -1,3 +1,4 @@
+
 const express = require('express');
 const bcrypt = require('bcrypt');
 
@@ -21,8 +22,29 @@ class UserService {
         }
 
         try {
+            // Normalize the email (convert to lowercase)
+            const normalizedEmail = email.trim().toLowerCase();
+
+            // Validate the email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(normalizedEmail)) {
+                return res.status(400).json({ message: 'Invalid email format!' });
+            }
+
+            // Enforce email length constraints
+            if (normalizedEmail.length > 255) {
+                return res.status(400).json({ message: 'Email is too long!' });
+            }
+
+            // (Optional) Check for disposable email providers
+            const disposableDomains = ['mailinator.com', '10minutemail.com', 'dispostable.com']; // Add more as needed
+            const emailDomain = normalizedEmail.split('@')[1];
+            if (disposableDomains.includes(emailDomain)) {
+                return res.status(400).json({ message: 'Disposable email addresses are not allowed!' });
+            }
+
             // Check if the email already exists
-            const userCheck = await this.db.query('SELECT * FROM "Users" WHERE email = $1', [email]);
+            const userCheck = await this.db.query('SELECT * FROM "Users" WHERE email = $1', [normalizedEmail]);
             if (userCheck.rows.length > 0) {
                 return res.status(400).json({ message: 'Email is already registered!' });
             }
@@ -36,7 +58,7 @@ class UserService {
                 `INSERT INTO "Users" (email, password, subscription_type_id, failed_login_attempts)
                  VALUES ($1, $2, $3, $4)
                  RETURNING user_id, email`,
-                [email, hashedPassword, subscription_type_id, failed_login_attempts]
+                [normalizedEmail, hashedPassword, subscription_type_id, failed_login_attempts]
             );
 
             res.status(201).json({
