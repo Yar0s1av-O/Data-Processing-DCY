@@ -1,6 +1,20 @@
 
 const express = require('express');
 const bcrypt = require('bcrypt');
+const js2xmlparser = require("js2xmlparser");
+
+// Utility function to format response in JSON or XML
+function formatResponse(req, res, data, status = 200) {
+    const acceptHeader = req.headers.accept;
+
+    if (acceptHeader && acceptHeader.includes("application/xml")) {
+        res.status(status).set("Content-Type", "application/xml");
+        res.send(js2xmlparser.parse("response", data));
+    } else {
+        res.status(status).set("Content-Type", "application/json");
+        res.json(data);
+    }
+}
 
 class UserService {
     constructor(db) {
@@ -31,14 +45,14 @@ class UserService {
         const { email, password, subscription_type_id = 1, failed_login_attempts = 0 } = req.body;
 
         if (!email || !password) {
-            return res.status(400).json({ message: 'Email and password are required!' });
+            return formatResponse(req, res, { message: 'Email and password are required!' }, 400);
         }
 
         try {
             // Check if the user already exists
             const userCheck = await this.db.query('SELECT * FROM "Users" WHERE email = $1', [email]);
             if (userCheck.rows.length > 0) {
-                return res.status(400).json({ message: 'Email is already registered!' });
+                return formatResponse(req, res, { message: 'Email is already registered!' }, 400);
             }
 
             // Hash the password
@@ -53,13 +67,15 @@ class UserService {
                 [email, hashedPassword, subscription_type_id, failed_login_attempts]
             );
 
-            res.status(201).json({
+            const responseData = {
                 message: 'User registered successfully!',
                 user: { id: newUser.rows[0].user_id, email: newUser.rows[0].email },
-            });
+            };
+
+            formatResponse(req, res, responseData, 201);
         } catch (err) {
             console.error('Error during registration:', err.stack);
-            res.status(500).json({ message: 'Server error', error: err.message });
+            formatResponse(req, res, { message: 'Server error', error: err.message }, 500);
         }
     }
 
@@ -67,10 +83,10 @@ class UserService {
     async getAllUsers(req, res) {
         try {
             const result = await this.db.query('SELECT * FROM "Users"');
-            res.status(200).json(result.rows);
+            formatResponse(req, res, result.rows, 200);
         } catch (err) {
             console.error('Error fetching users:', err.stack);
-            res.status(500).json({ message: 'Failed to retrieve users' });
+            formatResponse(req, res, { message: 'Failed to retrieve users' }, 500);
         }
     }
 
@@ -81,12 +97,12 @@ class UserService {
         try {
             const result = await this.db.query('SELECT * FROM "Users" WHERE user_id = $1', [id]);
             if (result.rows.length === 0) {
-                return res.status(404).json({ message: 'User not found' });
+                return formatResponse(req, res, { message: 'User not found' }, 404);
             }
-            res.status(200).json(result.rows[0]);
+            formatResponse(req, res, result.rows[0], 200);
         } catch (err) {
             console.error('Error fetching user:', err.stack);
-            res.status(500).json({ message: 'Failed to retrieve user' });
+            formatResponse(req, res, { message: 'Failed to retrieve user' }, 500);
         }
     }
 
@@ -122,16 +138,16 @@ class UserService {
             ]);
 
             if (result.rows.length === 0) {
-                return res.status(404).json({ message: 'User not found' });
+                return formatResponse(req, res, { message: 'User not found' }, 404);
             }
 
-            res.status(200).json({
+            formatResponse(req, res, {
                 message: 'User updated successfully!',
                 user: result.rows[0],
-            });
+            }, 200);
         } catch (err) {
             console.error('Error updating user:', err.stack);
-            res.status(500).json({ message: 'Failed to update user' });
+            formatResponse(req, res, { message: 'Failed to update user' }, 500);
         }
     }
 
@@ -143,13 +159,13 @@ class UserService {
             const result = await this.db.query('DELETE FROM "Users" WHERE user_id = $1 RETURNING user_id', [id]);
 
             if (result.rows.length === 0) {
-                return res.status(404).json({ message: 'User not found' });
+                return formatResponse(req, res, { message: 'User not found' }, 404);
             }
 
-            res.status(200).json({ message: 'User deleted successfully!' });
+            formatResponse(req, res, { message: 'User deleted successfully!' }, 200);
         } catch (err) {
             console.error('Error deleting user:', err.stack);
-            res.status(500).json({ message: 'Failed to delete user' });
+            formatResponse(req, res, { message: 'Failed to delete user' }, 500);
         }
     }
 

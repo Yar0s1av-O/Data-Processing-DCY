@@ -1,4 +1,15 @@
 const express = require('express');
+const js2xmlparser = require("js2xmlparser");
+
+// Utility function to format response based on query parameter
+function formatResponse(req, res, data, status = 200) {
+    const format = req.query.format;
+    if (format === 'xml') {
+        res.status(status).set("Content-Type", "application/xml").send(js2xmlparser.parse("response", data));
+    } else {
+        res.status(status).json(data);
+    }
+}
 
 class ProfileService {
     constructor(db) {
@@ -29,14 +40,14 @@ class ProfileService {
         const { email, profile_photo_link, age, language, name } = req.body;
 
         if (!email || !name) {
-            return res.status(400).json({ message: 'Email and name are required!' });
+            return formatResponse(req, res, { message: 'Email and name are required!' }, 400);
         }
 
         try {
             // Verify if the user exists
             const userCheck = await this.db.query('SELECT * FROM "Users" WHERE email = $1', [email]);
             if (userCheck.rows.length === 0) {
-                return res.status(404).json({ message: 'User with this email not found.' });
+                return formatResponse(req, res, { message: 'User with this email not found.' }, 404);
             }
 
             // Insert the profile into the "Profiles" table
@@ -54,13 +65,13 @@ class ProfileService {
                 [userCheck.rows[0].user_id, newProfile.rows[0].profile_id]
             );
 
-            res.status(201).json({
+            formatResponse(req, res, {
                 message: 'Profile created successfully!',
                 profile: newProfile.rows[0],
-            });
+            }, 201);
         } catch (err) {
             console.error('Error during profile registration:', err.stack);
-            res.status(500).json({ message: 'Server error', error: err.message });
+            formatResponse(req, res, { message: 'Server error', error: err.message }, 500);
         }
     }
 
@@ -68,10 +79,10 @@ class ProfileService {
     async getAllProfiles(req, res) {
         try {
             const result = await this.db.query('SELECT * FROM "Profiles"');
-            res.status(200).json(result.rows);
+            formatResponse(req, res, result.rows, 200);
         } catch (err) {
             console.error('Error retrieving profiles:', err.stack);
-            res.status(500).json({ message: 'Failed to retrieve profiles', error: err.message });
+            formatResponse(req, res, { message: 'Failed to retrieve profiles', error: err.message }, 500);
         }
     }
 
@@ -82,12 +93,12 @@ class ProfileService {
         try {
             const result = await this.db.query('SELECT * FROM "Profiles" WHERE profile_id = $1', [id]);
             if (result.rows.length === 0) {
-                return res.status(404).json({ message: 'Profile not found.' });
+                return formatResponse(req, res, { message: 'Profile not found.' }, 404);
             }
-            res.status(200).json(result.rows[0]);
+            formatResponse(req, res, result.rows[0], 200);
         } catch (err) {
             console.error('Error retrieving profile:', err.stack);
-            res.status(500).json({ message: 'Failed to retrieve profile', error: err.message });
+            formatResponse(req, res, { message: 'Failed to retrieve profile', error: err.message }, 500);
         }
     }
 
@@ -115,16 +126,16 @@ class ProfileService {
             ]);
 
             if (result.rows.length === 0) {
-                return res.status(404).json({ message: 'Profile not found.' });
+                return formatResponse(req, res, { message: 'Profile not found.' }, 404);
             }
 
-            res.status(200).json({
+            formatResponse(req, res, {
                 message: 'Profile updated successfully!',
                 profile: result.rows[0],
-            });
+            }, 200);
         } catch (err) {
             console.error('Error updating profile:', err.stack);
-            res.status(500).json({ message: 'Failed to update profile', error: err.message });
+            formatResponse(req, res, { message: 'Failed to update profile', error: err.message }, 500);
         }
     }
 
@@ -139,13 +150,13 @@ class ProfileService {
             );
 
             if (result.rows.length === 0) {
-                return res.status(404).json({ message: 'Profile not found.' });
+                return formatResponse(req, res, { message: 'Profile not found.' }, 404);
             }
 
-            res.status(200).json({ message: 'Profile deleted successfully.' });
+            formatResponse(req, res, { message: 'Profile deleted successfully.' }, 200);
         } catch (err) {
             console.error('Error deleting profile:', err.stack);
-            res.status(500).json({ message: 'Failed to delete profile', error: err.message });
+            formatResponse(req, res, { message: 'Failed to delete profile', error: err.message }, 500);
         }
     }
 
