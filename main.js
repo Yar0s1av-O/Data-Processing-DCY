@@ -1,3 +1,4 @@
+
 require('dotenv').config(); // Load environment variables
 const express = require('express');
 const path = require('path');
@@ -12,50 +13,59 @@ class App {
         this.port = config.port || 4000;
         this.dbConfig = config.dbConfig;
         this.app = express();
+        this.services = [];
     }
 
     async initialize() {
         try {
-            // Initialize the database
+            console.log('Initializing database connection...');
             this.db = new Database(this.dbConfig);
+            await this.db.testConnection();
             console.log('Database initialized successfully!');
 
-            // Initialize middleware
             this.setupMiddleware();
-
-            // Initialize services
             this.initializeServices();
-
-            // Start the server
             this.startServer();
         } catch (error) {
-            console.error('Failed to initialize the application:', error);
+            console.error('Failed to initialize the application:', error.message);
+            process.exit(1); // Exit on failure
         }
     }
 
     setupMiddleware() {
-        // Middleware to parse JSON requests
+        // Parse incoming JSON requests
         this.app.use(express.json());
 
-        // Serve static files (e.g., index.html, script.js)
+        // Serve static files (e.g., HTML, JS, CSS)
         this.app.use(express.static(path.join(__dirname, 'public')));
+
+        // Basic health check route
+        this.app.get('/health', (req, res) => {
+            res.status(200).json({ status: 'OK', message: 'Server is running!' });
+        });
+
+        console.log('Middleware initialized.');
     }
 
     initializeServices() {
-        // Initialize UserService
-        const userService = new UserService(this.db);
-        this.app.use('/users', userService.getRouter());
+        console.log('Initializing services...');
 
-        // Initialize ProfileService
-        const profileService = new ProfileService(this.db);
-        this.app.use('/profiles', profileService.getRouter());
+        // Register all services dynamically
+        this.services = [
+            { path: '/users', service: new UserService(this.db) },
+            { path: '/profiles', service: new ProfileService(this.db) },
+            { path: '/exports', service: new ExportService(this.db) },
+        ];
 
-        // Initialize AuthService (Google OAuth)
-        new AuthService(this.app, userService, this.db);
+        this.services.forEach(({ path, service }) => {
+            this.app.use(path, service.getRouter());
+            console.log(`Service mounted at ${path}`);
+        });
 
-        // Initialize ExportService
-        const exportService = new ExportService(this.db);
-        this.app.use('/exports', exportService.getRouter());
+        // Initialize AuthService separately for OAuth (as it directly modifies the app)
+        new AuthService(this.app, new UserService(this.db), this.db);
+
+        console.log('All services initialized successfully.');
     }
 
     startServer() {
@@ -63,12 +73,30 @@ class App {
             console.log(`Server is running on http://localhost:${this.port}`);
         });
 
-        // Handle graceful shutdown
+        // Graceful shutdown
         process.on('SIGTERM', async () => {
             console.log('SIGTERM signal received. Closing app...');
-            await this.db.closeConnection();
-            process.exit(0);
+            await this.shutdown();
         });
+
+        process.on('SIGINT', async () => {
+            console.log('SIGINT signal received. Closing app...');
+            await this.shutdown();
+        });
+    }
+
+    async shutdown() {
+        try {
+            if (this.db) {
+                await this.db.closeConnection();
+                console.log('Database connection closed.');
+            }
+            console.log('Application shutdown successfully.');
+            process.exit(0);
+        } catch (error) {
+            console.error('Error during shutdown:', error.message);
+            process.exit(1);
+        }
     }
 }
 
