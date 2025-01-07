@@ -5,7 +5,6 @@ const { Pool } = require('pg');
 class Database {
     constructor(config) {
         this.pool = new Pool(config);
-        this.testConnection();
     }
 
     async testConnection() {

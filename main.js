@@ -1,5 +1,5 @@
-
 require('dotenv').config(); // Load environment variables
+
 const express = require('express');
 const path = require('path');
 const Database = require('./Database'); // Database connection
@@ -7,6 +7,7 @@ const UserService = require('./services/UserService'); // User service
 const ProfileService = require('./services/ProfileService'); // Profile service
 const AuthService = require('./services/AuthService'); // Google OAuth service
 const ExportService = require('./services/ExportService'); // Export service
+const js2xmlparser = require("js2xmlparser");
 
 class App {
     constructor(config) {
@@ -41,7 +42,16 @@ class App {
 
         // Basic health check route
         this.app.get('/health', (req, res) => {
-            res.status(200).json({ status: 'OK', message: 'Server is running!' });
+            const format = req.query.format;
+            const response = {
+                status: 'OK',
+                message: 'Server is running!'
+            };
+            if (format === 'xml') {
+                res.status(200).set("Content-Type", "application/xml").send(js2xmlparser.parse("response", response));
+            } else {
+                res.status(200).json(response);
+            }
         });
 
         console.log('Middleware initialized.');
@@ -58,6 +68,17 @@ class App {
         ];
 
         this.services.forEach(({ path, service }) => {
+            this.app.use(path, (req, res, next) => {
+                const format = req.query.format;
+                res.formatResponse = (data, status = 200) => {
+                    if (format === 'xml') {
+                        res.status(status).set("Content-Type", "application/xml").send(js2xmlparser.parse("response", data));
+                    } else {
+                        res.status(status).json(data);
+                    }
+                };
+                next();
+            });
             this.app.use(path, service.getRouter());
             console.log(`Service mounted at ${path}`);
         });
@@ -104,11 +125,11 @@ class App {
 const config = {
     port: process.env.PORT || 4000,
     dbConfig: {
-        user: process.env.DB_USER || 'postgres',
         host: process.env.DB_HOST || 'localhost',
-        database: process.env.DB_NAME || 'postgres',
-        password: process.env.DB_PASSWORD || 'Dera1372@',
         port: process.env.DB_PORT || 5432,
+        database: process.env.DB_NAME,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
     },
 };
 
