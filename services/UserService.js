@@ -76,13 +76,22 @@ class UserService {
             };
             const token = jwt.sign(payload, 'your_secret_key', { expiresIn: '1h' }); // Expiration time 1 hour
 
+            const resultUserProfiles = await this.db.query('SELECT * FROM "UserProfiles" WHERE email = $1', [email]);
+            const userProfiles = resultUserProfiles.rows.map(row => ({
+                user_id: row.user_id,
+                name: row.name,
+                family: row.family,
+                email: row.email,
+                age: row.age,
+                profile_photo_link: row.profile_photo_link,
+                subscription_type_id: row.subscription_type_id,
+                subscription_end_date: row.subscription_end_date,
+            }));
+
             const responseData = {
                 message: 'Login successful!',
                 token: token,
-                user: {
-                    id: result.rows[0].user_id,
-                    email: result.rows[0].email,
-                }
+                user: userProfiles,
             };
 
             formatResponse(req, res, responseData, 200);
