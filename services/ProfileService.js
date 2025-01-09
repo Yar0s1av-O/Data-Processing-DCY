@@ -1,11 +1,11 @@
 const express = require('express');
-const js2xmlparser = require("js2xmlparser");
+const js2xmlparser = require('js2xmlparser');
 
 // Utility function to format response based on query parameter
 function formatResponse(req, res, data, status = 200) {
     const format = req.query.format;
     if (format === 'xml') {
-        res.status(status).set("Content-Type", "application/xml").send(js2xmlparser.parse("response", data));
+        res.status(status).set('Content-Type', 'application/xml').send(js2xmlparser.parse('response', data));
     } else {
         res.status(status).json(data);
     }
@@ -19,58 +19,34 @@ class ProfileService {
     }
 
     initializeRoutes() {
-        // CREATE: Add a new profile for a user
-        this.router.post('/', this.registerProfile.bind(this));
-
-        // READ: Get all profiles
-        this.router.get('/', this.getAllProfiles.bind(this));
-
-        // READ: Get a specific profile by ID
-        this.router.get('/:id', this.getProfileById.bind(this));
-
-        // UPDATE: Update a profile
-        this.router.put('/:id', this.updateProfile.bind(this));
-
-        // DELETE: Delete a profile
-        this.router.delete('/:id', this.deleteProfile.bind(this));
+        this.router.post('/create', this.createProfile.bind(this)); // Create a profile
+        this.router.get('/', this.getAllProfiles.bind(this)); // Get all profiles
+        this.router.get('/:id', this.getProfileById.bind(this)); // Get profile by ID
+        this.router.put('/:id', this.updateProfile.bind(this)); // Update profile
+        this.router.delete('/:id', this.deleteProfile.bind(this)); // Delete profile
     }
 
-    // CREATE: Register a profile
-    async registerProfile(req, res) {
-        const { email, profile_photo_link, age, language, name } = req.body;
+    // CREATE: Add a new profile
+    async createProfile(req, res) {
+        const { name, family, age, language, profile_photo_link, userid } = req.body;
 
-        if (!email || !name) {
-            return formatResponse(req, res, { message: 'Email and name are required!' }, 400);
+        // Validate input
+        if (!userid || !name || !family) {
+            return formatResponse(req, res, { message: 'Missing required fields!' }, 400);
         }
 
         try {
-            // Verify if the user exists
-            const userCheck = await this.db.query('SELECT * FROM "Users" WHERE email = $1', [email]);
-            if (userCheck.rows.length === 0) {
-                return formatResponse(req, res, { message: 'User with this email not found.' }, 404);
-            }
-
-            // Insert the profile into the "Profiles" table
             const newProfile = await this.db.query(
-                `INSERT INTO "Profiles" (profile_photo_link, age, language, name)
-                 VALUES ($1, $2, $3, $4)
-                 RETURNING profile_id, profile_photo_link, age, language, name`,
-                [profile_photo_link, age, language, name]
-            );
-
-            // Link the user to the new profile in "User profile connection"
-            await this.db.query(
-                `INSERT INTO "User profile connection" (user_id, profile_id)
-                 VALUES ($1, $2)`,
-                [userCheck.rows[0].user_id, newProfile.rows[0].profile_id]
+                'CALL SP_insert_into_profiles($1, $2, $3, $4, $5, $6)',
+                [profile_photo_link, age, language, name, userid, family]
             );
 
             formatResponse(req, res, {
                 message: 'Profile created successfully!',
-                profile: newProfile.rows[0],
+                profile: newProfile.rows[0], // Assuming the procedure returns the new profile
             }, 201);
         } catch (err) {
-            console.error('Error during profile registration:', err.stack);
+            console.error('Error during profile creation:', err.stack);
             formatResponse(req, res, { message: 'Server error', error: err.message }, 500);
         }
     }
