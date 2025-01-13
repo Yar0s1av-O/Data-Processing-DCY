@@ -5,6 +5,7 @@ const path = require('path');
 const Database = require('./Database'); // Database connection
 const UserService = require('./services/UserService'); // User service
 const ProfileService = require('./services/ProfileService'); // Profile service
+const SubscriptionService = require('./services/SubscriptionService'); // Subscription service
 const AuthService = require('./services/AuthService'); // Google OAuth service
 const ExportService = require('./services/ExportService'); // Export service
 const js2xmlparser = require("js2xmlparser");
@@ -65,6 +66,7 @@ class App {
             { path: '/users', service: new UserService(this.db) },
             { path: '/profiles', service: new ProfileService(this.db) },
             { path: '/exports', service: new ExportService(this.db) },
+            { path: '/subscription', service: new SubscriptionService(this.db) },
         ];
 
         this.services.forEach(({ path, service }) => {
