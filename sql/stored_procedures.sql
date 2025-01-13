@@ -34,3 +34,21 @@ END;
 $BODY$;
 ALTER PROCEDURE public.sp_insert_into_profiles(text, integer, text, text, integer, text)
     OWNER TO postgres;
+
+CREATE OR REPLACE PROCEDURE public.sp_insert_subscription(
+	IN _subscription_type_id integer,
+	IN _subscription_name text,
+	IN _subscription_price_euro real
+)
+LANGUAGE 'plpgsql'
+AS $BODY$
+BEGIN
+    -- Insert the new subscription into the table and return the inserted data
+    INSERT INTO public."Subscriptions" 
+    (subscription_type_id, subscription_name, subscription_price_euro)
+    VALUES
+    (_subscription_type_id, _subscription_name, _subscription_price_euro);
+END;
+$BODY$;
+ALTER PROCEDURE public.sp_insert_subscription(integer, text, real)
+    OWNER TO postgres;
