@@ -66,6 +66,8 @@ class SubscriptionService {
 
         try {
 
+            await this.db.query('BEGIN'); // Begin Transaction
+
             const result = await this.db.query(
                 'CALL public.sp_pay_subscription($1, $2, $3)',
                 [userid, subscription_type_id, null]
@@ -77,7 +79,7 @@ class SubscriptionService {
             if (statusCode === 404) {
                 res.status(404).json({ message: 'User not found.', status_code: 404 });
             } else if (statusCode === 422) {
-                res.status(422).json({ message: 'Invalid subscription type or user not found.', status_code: 422 });
+                res.status(422).json({ message: 'Invalid subscription type.', status_code: 422 });
             } else if (statusCode === 403) {
                 res.status(403).json({ message: 'Subscription is still active.', status_code: 403 });
             } else if (statusCode === 200) {
@@ -85,8 +87,12 @@ class SubscriptionService {
             } else {
                 res.status(500).json({ message: 'Unexpected status code.', status_code });
             }
+
+            await this.db.query('COMMIT'); // Commit Transaction
+
         } catch (err) {
-            console.error('Error during update:', err.stack);
+            await this.db.query('ROLLBACK'); // Rollback Transaction
+            console.error('Transaction failed:', err.message);
             formatResponse(req, res, { message: 'Server error', error: err.message }, 500);
         }
 

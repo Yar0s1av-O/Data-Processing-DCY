@@ -15,6 +15,7 @@ class ExportService {
         this.router.get("/users", this.exportUsers.bind(this));
         // Export all profiles
         this.router.get("/profiles", this.exportProfiles.bind(this));
+        
     }
 
     async exportUsers(req, res) {

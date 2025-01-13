@@ -31,6 +31,9 @@ class UserService {
         // CREATE: Register a new user
         this.router.post('/register', this.registerUser.bind(this));
 
+        // CREATE: Invitation by user
+        this.router.post('/invite', this.inviteUser.bind(this));
+
         // READ: Get all users
         this.router.get('/', this.getAllUsers.bind(this));
 
@@ -140,6 +143,38 @@ class UserService {
             formatResponse(req, res, responseData, 201);
         } catch (err) {
             console.error('Error during registration:', err.stack);
+            formatResponse(req, res, { message: 'Server error', error: err.message }, 500);
+        }
+    }
+
+    // CREATE: Invitation by user
+    async inviteUser(req, res) {
+        const { invited_user_email, invite_by_user_id } = req.body;
+
+        if (!invited_user_email || !invite_by_user_id) {
+            return formatResponse(req, res, { message: 'invited_user_email and invite_by_user_id are required!' }, 400);
+        }
+
+        try {
+            // Check if the user already exists
+            const inviteCheck = await this.db.query('SELECT * FROM public."invitations" WHERE invited_user_email = $1 and invite_by_user_id = $2',
+                [invited_user_email, invite_by_user_id]);
+            if (inviteCheck.rows.length > 0) {
+                return formatResponse(req, res, { message: 'This Email is already invited!' }, 400);
+            }
+
+            // Insert new invitation
+            await this.db.query(
+                'CALL sp_insert_into_invitations($1, $2)',
+                [invited_user_email, invite_by_user_id]
+            );
+
+            formatResponse(req, res, {
+                message: 'Invitation created successfully!',
+            }, 201);
+
+        } catch (err) {
+            console.error('Error during creation:', err.stack);
             formatResponse(req, res, { message: 'Server error', error: err.message }, 500);
         }
     }
