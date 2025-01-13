@@ -52,3 +52,80 @@ END;
 $BODY$;
 ALTER PROCEDURE public.sp_insert_subscription(integer, text, real)
     OWNER TO postgres;
+
+
+CREATE OR REPLACE PROCEDURE public.sp_pay_subscription(
+	IN _user_id integer,
+	IN _subscription_type_id smallint,
+	OUT status_code integer)
+LANGUAGE 'plpgsql'
+AS $BODY$
+DECLARE
+    user_subscription_end_date TIMESTAMP;
+    user_exists BOOLEAN;
+    subscription_exists BOOLEAN;
+BEGIN
+
+	BEGIN
+	
+	    SELECT EXISTS (
+	        SELECT 1
+	        FROM public."Users"
+	        WHERE user_id = _user_id
+	    ) INTO user_exists;
+	
+	    IF NOT user_exists THEN
+	        status_code := 404;
+	        RETURN;
+	    END IF;
+	
+	    SELECT EXISTS (
+	        SELECT 1
+	        FROM public."Subscriptions"
+	        WHERE subscription_type_id = _subscription_type_id
+	    ) INTO subscription_exists;
+	
+	    IF NOT subscription_exists THEN
+	        status_code := 422;
+	        RETURN;
+	    END IF;
+	
+	    SELECT subscription_end_date
+	    INTO user_subscription_end_date
+	    FROM public."Users"
+	    WHERE user_id = _user_id
+	    LIMIT 1;
+	
+	    IF user_subscription_end_date IS NULL THEN
+	        status_code := 404;
+	        RETURN;
+	    END IF;
+	
+	    IF user_subscription_end_date > NOW() THEN
+	        status_code := 403;
+	        RETURN;
+	    END IF;
+	
+	    UPDATE public."Users"
+	    SET 
+	        subscription_type_id = _subscription_type_id,
+	        subscription_end_date = NOW() + INTERVAL '30 days'
+	    WHERE user_id = _user_id;
+	
+	    status_code := 200;
+
+		COMMIT;
+
+	EXCEPTION
+	
+        WHEN OTHERS THEN
+            -- If error happens
+            ROLLBACK;
+            RAISE NOTICE 'An error occurred: %', SQLERRM;
+            status_code := 500; -- Server Error
+			
+    END;
+END;
+$BODY$;
+ALTER PROCEDURE public.sp_pay_subscription(integer, smallint)
+    OWNER TO postgres;
