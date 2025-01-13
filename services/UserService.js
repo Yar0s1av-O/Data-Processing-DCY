@@ -105,6 +105,7 @@ class UserService {
     async registerUser(req, res) {
         const { email, password, subscription_type_id = 1, failed_login_attempts = 0 } = req.body;
 
+
         if (!email || !password) {
             return formatResponse(req, res, { message: 'Email and password are required!' }, 400);
         }
@@ -122,7 +123,7 @@ class UserService {
 
             // Insert new user
             const newUser = await this.db.query(
-                `INSERT INTO "Users" (email, password, subscription_type_id, failed_login_attempts)
+                `INSERT INTO public."Users" (email, password, subscription_type_id, failed_login_attempts)
                  VALUES ($1, $2, $3, $4)
                  RETURNING user_id, email`,
                 [email, hashedPassword, subscription_type_id, failed_login_attempts]
