@@ -28,25 +28,20 @@ class ProfileService {
 
     // CREATE: Add a new profile
     async createProfile(req, res) {
-        const { name, family, age, language, profile_photo_link, userid } = req.body;
-
-        // Validate input
-        if (!userid || !name || !family) {
-            return formatResponse(req, res, { message: 'Missing required fields!' }, 400);
-        }
+        const {userid, profile_name, profile_photo_link, age, language} = req.body;
 
         try {
-            const newProfile = await this.db.query(
-                'CALL SP_insert_into_profiles($1, $2, $3, $4, $5, $6)',
-                [profile_photo_link, age, language, name, userid, family]
+            // Link the user to the new profile in "User profile connection"
+            await this.db.query(
+                'CALL SP_insert_into_profiles($1, $2, $3, $4, $5)',
+                [userid, profile_name, profile_photo_link, age, language]
             );
 
             formatResponse(req, res, {
                 message: 'Profile created successfully!',
-                profile: newProfile.rows[0], // Assuming the procedure returns the new profile
             }, 201);
         } catch (err) {
-            console.error('Error during profile creation:', err.stack);
+            console.error('Error during profile registration:', err.stack);
             formatResponse(req, res, { message: 'Server error', error: err.message }, 500);
         }
     }
