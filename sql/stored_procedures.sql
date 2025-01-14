@@ -15,22 +15,22 @@ ALTER PROCEDURE public.sp_insert_into_invitations(text, integer)
     OWNER TO postgres;
 
 
-CREATE OR REPLACE PROCEDURE public.sp_insert_into_profiles(
-	IN _profile_photo_link text,
-	IN _age integer,
-	IN _language text,
-	IN _name text,
-	IN _userid integer,
-	IN _family text)
-LANGUAGE 'plpgsql'
-AS $BODY$
+CREATE OR REPLACE PROCEDURE SP_insert_into_profiles(
+    _user_id INTEGER,
+    _profile_name TEXT,
+    _profile_photo_link TEXT,
+    _age SMALLINT,
+    _language TEXT
+)
+LANGUAGE plpgsql AS $$
 BEGIN
-    -- Insert the new profile into the table and return the inserted data
+    -- Insert the new profile
     INSERT INTO public."Profiles" 
-    (profile_photo_link, age, language, name, userid, family)
+    (user_id, profile_name, profile_photo_link, age, language)
     VALUES
-    (_profile_photo_link, _age, _language, _name, _userid, _family);
+    (_user_id, _profile_name, _profile_photo_link, _age, _language);
 END;
+$$;
 $BODY$;
 ALTER PROCEDURE public.sp_insert_into_profiles(text, integer, text, text, integer, text)
     OWNER TO postgres;
