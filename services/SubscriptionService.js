@@ -72,15 +72,15 @@ class SubscriptionService {
             const statusCode = result.rows[0]?.status_code || null;
 
             if (statusCode === 404) {
-                res.status(404).json({ message: "User not found.", status_code: 404 });
+                formatResponse(req, res, { message: "User not found.", status_code: 404 }, 404);
             } else if (statusCode === 422) {
-                res.status(422).json({ message: "Invalid subscription type.", status_code: 422 });
+                formatResponse(req, res, { message: "Invalid subscription type.", status_code: 422 }, 422);
             } else if (statusCode === 403) {
-                res.status(403).json({ message: "Subscription is still active.", status_code: 403 });
+                formatResponse(req, res, { message: "Subscription is still active.", status_code: 403 }, 403);
             } else if (statusCode === 200) {
-                res.status(200).json({ message: "Subscription payment processed successfully.", status_code: 200 });
+                formatResponse(req, res, { message: "Subscription payment processed successfully.", status_code: 200 }, 200);
             } else {
-                res.status(500).json({ message: "Unexpected status code.", status_code });
+                formatResponse(req, res, { message: "Unexpected status code.", status_code }, 500);
             }
         } catch (err) {
             console.error("Error during subscription payment:", err.message);
