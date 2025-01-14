@@ -28,18 +28,13 @@ class ProfileService {
 
     // CREATE: Add a new profile
     async createProfile(req, res) {
-        const { userid, profile_name, profile_photo_link, age, language } = req.body;
-
-        // Validate the request payload
-        if (!userid || !profile_name || !profile_photo_link || !age || !language) {
-            return formatResponse(req, res, { message: 'All fields are required!' }, 400);
-        }
+        const {userid, profile_name, profile_photo_link, age, language} = req.body;
 
         try {
-            // Insert the profile using a stored procedure
+            // Link the user to the new profile in "User profile connection"
             await this.db.query(
                 'CALL SP_insert_into_profiles($1, $2, $3, $4, $5)',
-                [userid, profile_name, profile_photo_link, age, language]
+                [user_id, profile_name, profile_photo_link, age, language]
             );
 
             formatResponse(req, res, {
@@ -81,21 +76,23 @@ class ProfileService {
     // UPDATE: Update a profile by ID
     async updateProfile(req, res) {
         const { id } = req.params;
-        const { profile_photo_link, age, language } = req.body; // Removed `name` since it's not in the schema
+        const { profile_photo_link, age, language, name } = req.body;
 
         try {
             const updateQuery = `
                 UPDATE "Profiles"
                 SET profile_photo_link = COALESCE($1, profile_photo_link),
                     age = COALESCE($2, age),
-                    language = COALESCE($3, language)
-                WHERE profile_id = $4
-                RETURNING profile_id, profile_photo_link, age, language`;
+                    language = COALESCE($3, language),
+                    name = COALESCE($4, name)
+                WHERE profile_id = $5
+                RETURNING profile_id, profile_photo_link, age, language, name`;
 
             const result = await this.db.query(updateQuery, [
                 profile_photo_link,
                 age,
                 language,
+                name,
                 id,
             ]);
 
