@@ -28,15 +28,18 @@ class ProfileService {
 
     // CREATE: Add a new profile
     async createProfile(req, res) {
-        const {userid, profile_name, profile_photo_link, age, language} = req.body;
-
+        const { userid, profile_name, profile_photo_link, age, language } = req.body;
+    
         try {
-            // Link the user to the new profile in "User profile connection"
+            // Map `userid` to `user_id`
+            const user_id = userid;
+    
+            // Call the stored procedure with the correct parameter names
             await this.db.query(
-                'CALL SP_insert_into_profiles($1, $2, $3, $4, $5)',
+                'CALL sp_insert_into_profiles($1, $2, $3, $4, $5)',
                 [user_id, profile_name, profile_photo_link, age, language]
             );
-
+    
             formatResponse(req, res, {
                 message: 'Profile created successfully!',
             }, 201);
@@ -45,6 +48,7 @@ class ProfileService {
             formatResponse(req, res, { message: 'Server error', error: err.message }, 500);
         }
     }
+    
 
     // READ: Get all profiles
     async getAllProfiles(req, res) {
