@@ -19,13 +19,22 @@ class SubscriptionService {
     }
 
     initializeRoutes() {
-        console.log("Initializing SubscriptionService routes...");
-
-        // CRUD Operations
+        // CREATE: Add a new subscription
         this.router.post("/create", this.createSubscription.bind(this));
-        this.router.get("/", this.getAllSubscriptions.bind(this));
+
+        // Pay subscription for a user
+        this.router.post("/pay", this.paySubscription.bind(this));
+
+        // READ: Get all subscriptions
+        this.router.get("/", this.getAllSubscription.bind(this));
+
+        // READ: Get a specific subscription by ID
         this.router.get("/:id", this.getSubscriptionById.bind(this));
+
+        // UPDATE: Update a subscription
         this.router.put("/:id", this.updateSubscription.bind(this));
+
+        // DELETE: Delete a subscription
         this.router.delete("/:id", this.deleteSubscription.bind(this));
     }
 
@@ -34,20 +43,54 @@ class SubscriptionService {
 
         try {
             await this.db.query(
-                "INSERT INTO \"Subscriptions\" (subscription_type_id, subscription_name, subscription_price_euro) VALUES ($1, $2, $3)",
+                "CALL sp_insert_subscription($1, $2, $3)",
                 [subscription_type_id, subscription_name, subscription_price_euro]
             );
 
-            formatResponse(req, res, { message: "Subscription created successfully!" }, 201);
+            formatResponse(req, res, {
+                message: "Subscription created successfully!",
+            }, 201);
         } catch (err) {
             console.error("Error during subscription creation:", err.stack);
             formatResponse(req, res, { message: "Server error", error: err.message }, 500);
         }
     }
 
-    async getAllSubscriptions(req, res) {
+    async paySubscription(req, res) {
+        const { userid, subscription_type_id } = req.body;
+
+        if (!userid || !subscription_type_id) {
+            return formatResponse(req, res, { message: "User ID and Subscription Type ID are required." }, 400);
+        }
+
         try {
-            const result = await this.db.query("SELECT * FROM \"Subscriptions\"");
+            const result = await this.db.query(
+                "CALL public.sp_pay_subscription($1, $2, $3)",
+                [userid, subscription_type_id, null]
+            );
+
+            const statusCode = result.rows[0]?.status_code || null;
+
+            if (statusCode === 404) {
+                res.status(404).json({ message: "User not found.", status_code: 404 });
+            } else if (statusCode === 422) {
+                res.status(422).json({ message: "Invalid subscription type.", status_code: 422 });
+            } else if (statusCode === 403) {
+                res.status(403).json({ message: "Subscription is still active.", status_code: 403 });
+            } else if (statusCode === 200) {
+                res.status(200).json({ message: "Subscription payment processed successfully.", status_code: 200 });
+            } else {
+                res.status(500).json({ message: "Unexpected status code.", status_code });
+            }
+        } catch (err) {
+            console.error("Error during subscription payment:", err.message);
+            formatResponse(req, res, { message: "Server error", error: err.message }, 500);
+        }
+    }
+
+    async getAllSubscription(req, res) {
+        try {
+            const result = await this.db.query('SELECT * FROM "Subscriptions"');
             formatResponse(req, res, result.rows, 200);
         } catch (err) {
             console.error("Error fetching subscriptions:", err.stack);
@@ -59,10 +102,7 @@ class SubscriptionService {
         const { id } = req.params;
 
         try {
-            const result = await this.db.query(
-                "SELECT * FROM \"Subscriptions\" WHERE subscription_type_id = $1",
-                [id]
-            );
+            const result = await this.db.query('SELECT * FROM "Subscriptions" WHERE subscription_type_id = $1', [id]);
 
             if (result.rows.length === 0) {
                 return formatResponse(req, res, { message: "Subscription not found." }, 404);
@@ -81,11 +121,11 @@ class SubscriptionService {
 
         try {
             const result = await this.db.query(
-                `UPDATE \"Subscriptions\"
+                `UPDATE "Subscriptions"
                  SET subscription_name = COALESCE($1, subscription_name),
                      subscription_price_euro = COALESCE($2, subscription_price_euro)
                  WHERE subscription_type_id = $3
-                 RETURNING *`,
+                 RETURNING subscription_type_id, subscription_name, subscription_price_euro`,
                 [subscription_name, subscription_price_euro, id]
             );
 
@@ -108,7 +148,7 @@ class SubscriptionService {
 
         try {
             const result = await this.db.query(
-                'DELETE FROM \"Subscriptions\" WHERE subscription_type_id = $1 RETURNING subscription_type_id',
+                'DELETE FROM "Subscriptions" WHERE subscription_type_id = $1 RETURNING subscription_type_id',
                 [id]
             );
 

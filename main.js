@@ -66,7 +66,7 @@ class App {
             { path: '/users', service: new UserService(this.db) },
             { path: '/profiles', service: new ProfileService(this.db) },
             { path: '/exports', service: new ExportService(this.db) },
-            { path: '/subscriptions', service: new SubscriptionService(this.db) }
+            { path: '/subscriptions', service: new SubscriptionService(this.db) },
 
         ];
 
