@@ -1,7 +1,7 @@
 
-
 const express = require("express");
 const formatResponse = require('../utils/formatHelper');
+console.log("formatResponse in ExportService:", formatResponse);
 
 class ExportService {
     constructor(db) {
