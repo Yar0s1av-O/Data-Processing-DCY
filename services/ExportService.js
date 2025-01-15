@@ -15,6 +15,8 @@ class ExportService {
         this.router.get("/users", this.exportUsers.bind(this));
         // Export all profiles
         this.router.get("/profiles", this.exportProfiles.bind(this));
+        // Export all subscriptions
+        this.router.get("/subscriptions", this.exportSubscriptions.bind(this));
         
     }
 
@@ -52,6 +54,22 @@ class ExportService {
         }
     }
 
+    async exportSubscriptions(req, res) {
+        const format = req.query.format || "json"; // Default format is JSON
+        try {
+            const subscriptions = await this.db.query('SELECT * FROM "Subscriptions"');
+            const formattedResponse = formatResponse(subscriptions.rows, format, "subscriptions");
+            if (format === "xml") {
+                res.set("Content-Type", "application/xml");
+            } else {
+                res.set("Content-Type", "application/json");
+            }
+            res.status(200).send(formattedResponse);
+        } catch (error) {
+            console.error("Error exporting subscriptions:", error);
+            res.status(500).send({ error: "Failed to export subscriptions" });
+        }
+    }
     getRouter() {
         return this.router; // Expose the router
     }
