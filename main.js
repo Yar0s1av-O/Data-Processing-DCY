@@ -9,6 +9,7 @@ const SubscriptionService = require('./services/SubscriptionService'); // Subscr
 const AuthService = require('./services/AuthService'); // Google OAuth service
 const ExportService = require('./services/ExportService'); // Export service
 const js2xmlparser = require("js2xmlparser");
+const setupSwagger = require("./swagger");
 
 class App {
     constructor(config) {
@@ -26,6 +27,7 @@ class App {
             console.log('Database initialized successfully!');
 
             this.setupMiddleware();
+            setupSwagger(this.app);
             this.initializeServices();
             this.startServer();
         } catch (error) {
@@ -95,6 +97,8 @@ class App {
     startServer() {
         this.app.listen(this.port, () => {
             console.log(`Server is running on http://localhost:${this.port}`);
+            console.log(`Swagger docs available at http://localhost:${this.port}/api-docs`);
+
         });
 
         // Graceful shutdown

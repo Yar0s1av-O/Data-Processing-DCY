@@ -20,11 +20,14 @@
     "nodemon": "^3.1.9",
     "passport": "^0.7.0",
     "passport-google-oauth2": "^0.2.0",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "yamljs": "^0.3.0"
   },
   "description": "",
   "devDependencies": {
     "jest": "^29.7.0",
     "supertest": "^7.0.0"
-  }  
+  }
 }
