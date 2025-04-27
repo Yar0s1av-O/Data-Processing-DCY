@@ -127,3 +127,7 @@ Holds sensitive credentials for PostgreSQL and Google OAuth. This file is exclud
 
 ### `.gitignore`
 Specifies files and directories to be ignored by Git, including `.env` and local backup directories.
+# Media Content Management API - Response Format Guide (JSON and XML)
+
+This API supports both **JSON** and **XML** responses for all resources.  
+You can easily switch between JSON and XML by **adding `?format=xml`** to the end of the URL.
