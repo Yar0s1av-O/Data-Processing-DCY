@@ -29,26 +29,25 @@ class ProfileService {
     // CREATE: Add a new profile
     async createProfile(req, res) {
         const { userid, profile_name, profile_photo_link, age, language } = req.body;
-    
+
+        // Basic input validation
+        if (!userid || !profile_name || !profile_photo_link || !age || !language) {
+            return formatResponse(req, res, { message: 'Missing required fields.' }, 400);
+        }
+
         try {
-            // Map `userid` to `user_id`
             const user_id = userid;
-    
-            // Call the stored procedure with the correct parameter names
             await this.db.query(
                 'CALL sp_insert_into_profiles($1, $2, $3, $4, $5)',
                 [user_id, profile_name, profile_photo_link, age, language]
             );
-    
-            formatResponse(req, res, {
-                message: 'Profile created successfully!',
-            }, 201);
+
+            formatResponse(req, res, { message: 'Profile created successfully!' }, 201);
         } catch (err) {
-            console.error('Error during profile registration:', err.stack);
+            console.error('Error during profile creation:', err.stack);
             formatResponse(req, res, { message: 'Server error', error: err.message }, 500);
         }
     }
-    
 
     // READ: Get all profiles
     async getAllProfiles(req, res) {
@@ -64,6 +63,10 @@ class ProfileService {
     // READ: Get a profile by ID
     async getProfileById(req, res) {
         const { id } = req.params;
+
+        if (!id) {
+            return formatResponse(req, res, { message: 'Profile ID is required.' }, 400);
+        }
 
         try {
             const result = await this.db.query('SELECT * FROM "Profiles" WHERE profile_id = $1', [id]);
@@ -82,15 +85,19 @@ class ProfileService {
         const { id } = req.params;
         const { profile_photo_link, age, language, name } = req.body;
 
+        if (!id) {
+            return formatResponse(req, res, { message: 'Profile ID is required.' }, 400);
+        }
+
         try {
             const updateQuery = `
                 UPDATE "Profiles"
                 SET profile_photo_link = COALESCE($1, profile_photo_link),
-                    age = COALESCE($2, age),
-                    language = COALESCE($3, language),
-                    name = COALESCE($4, name)
+                age = COALESCE($2, age),
+                language = COALESCE($3, language),
+                profile_name = COALESCE($4, profile_name)
                 WHERE profile_id = $5
-                RETURNING profile_id, profile_photo_link, age, language, name`;
+                RETURNING profile_id, profile_photo_link, age, language, profile_name`;
 
             const result = await this.db.query(updateQuery, [
                 profile_photo_link,
@@ -118,6 +125,10 @@ class ProfileService {
     async deleteProfile(req, res) {
         const { id } = req.params;
 
+        if (!id) {
+            return formatResponse(req, res, { message: 'Profile ID is required.' }, 400);
+        }
+
         try {
             const result = await this.db.query(
                 'DELETE FROM "Profiles" WHERE profile_id = $1 RETURNING profile_id',
@@ -128,7 +139,7 @@ class ProfileService {
                 return formatResponse(req, res, { message: 'Profile not found.' }, 404);
             }
 
-            formatResponse(req, res, { message: 'Profile deleted successfully.' }, 200);
+            res.status(204).send(); // 204 No Content on successful deletion
         } catch (err) {
             console.error('Error deleting profile:', err.stack);
             formatResponse(req, res, { message: 'Failed to delete profile', error: err.message }, 500);
