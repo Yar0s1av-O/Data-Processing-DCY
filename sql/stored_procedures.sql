@@ -120,15 +120,15 @@ ALTER PROCEDURE public.sp_pay_subscription(integer, smallint)
 
 
 CREATE OR REPLACE PROCEDURE public.sp_insert_into_watch_history(
-    IN _profile_id INTEGER,
-    IN _watchable_id INTEGER,
-    IN _time_stopped TIME WITHOUT TIME ZONE
+    IN profile_id INTEGER,
+    IN watchable_id INTEGER,
+    IN time_stopped TIME WITHOUT TIME ZONE
 )
-LANGUAGE plpgsql
+LANGUAGE 'plpgsql'
 AS $$
 BEGIN
     -- Insert the new watch history record
-    INSERT INTO public."WatchHistory"
+    INSERT INTO public."Watch history"
     (profile_id, watchable_id, time_stopped)
     VALUES
     (_profile_id, _watchable_id, _time_stopped);
