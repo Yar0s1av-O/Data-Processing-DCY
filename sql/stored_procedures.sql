@@ -132,5 +132,24 @@ BEGIN
 END;
 $$;
 
+
 ALTER PROCEDURE public.sp_insert_into_watch_history(integer, integer, time without time zone)
+    OWNER TO postgres;
+
+
+CREATE OR REPLACE PROCEDURE sp_insert_into_watchlist(
+    p_profile_id INTEGER,
+    p_watchable_id INTEGER
+)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO "Watchlist" (profile_id, watchable_id)
+    VALUES (p_profile_id, p_watchable_id)
+    ON CONFLICT DO NOTHING;
+END;
+$$;
+
+
+ALTER PROCEDURE public.sp_insert_into_watchlist(integer, integer)
     OWNER TO postgres;

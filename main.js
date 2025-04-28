@@ -9,6 +9,7 @@ const SubscriptionService = require('./services/SubscriptionService'); // Subscr
 const AuthService = require('./services/AuthService'); // Google OAuth service
 const ExportService = require('./services/ExportService'); // Export service
 const WatchHistoryService = require('./services/WatchHistoryService');
+const WatchlistService = require('./services/WatchlistService');
 const js2xmlparser = require("js2xmlparser");
 const setupSwagger = require("./swagger");
 
@@ -70,7 +71,8 @@ class App {
             {path: '/profiles', service: new ProfileService(this.db)},
             {path: '/exports', service: new ExportService(this.db)},
             {path: '/subscriptions', service: new SubscriptionService(this.db)},
-            {path: '/watch-history', service: new WatchHistoryService(this.db)}
+            {path: '/watch-history', service: new WatchHistoryService(this.db)},
+            {path: '/watchlist', service: new WatchlistService(this.db)}
         ];
 
         this.services.forEach(({path, service}) => {
