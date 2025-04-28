@@ -2,14 +2,18 @@ const express = require('express');
 const passport = require('passport');
 const session = require('express-session');
 const GoogleStrategy = require('passport-google-oauth2').Strategy;
+const TokenService = require('./TokenService');
+
+
 
 
 
 class AuthService {
-    constructor(app, userService, db) {
+    constructor(app, userService, db, tokenService) {
         this.userService = userService;
         this.db = db;
-        this.router = express.Router();
+        this.tokenService = tokenService;
+        this.router = require('express').Router();
         this.initializeOAuth();
         this.setupRoutes(app);
     }
@@ -95,18 +99,37 @@ class AuthService {
         });
 
         // Protected route
-        this.router.get('/profile', this.isAuthenticated, (req, res) => {
-            res.status(200).json({
-                message: `Welcome back, ${req.user.name || req.user.email.split('@')[0]}!`,
-                user: {
-                    user_id: req.user.user_id,
-                    email: req.user.email,
-                    name: req.user.name || 'Unknown',
-                    profile_picture: req.user.profile_picture || null
-                },
-            });
-        });
+        this.router.get('/profile', this.isAuthenticated, async (req, res) => {
+            try {
+                let accessToken = req.user.access_token;
+                const refreshToken = req.user.refresh_token;
         
+                if (!accessToken && refreshToken) {
+                    // Use the tokenService that was injected
+                    accessToken = await this.tokenService.refreshAccessToken(refreshToken);
+        
+                    // Update the user's access token in the database
+                    await this.db.query(
+                        `UPDATE "Users" SET access_token = $1 WHERE user_id = $2`,
+                        [accessToken, req.user.user_id]
+                    );
+                }
+        
+                res.status(200).json({
+                    message: `Welcome back, ${req.user.name || req.user.email.split('@')[0]}!`,
+                    user: {
+                        user_id: req.user.user_id,
+                        email: req.user.email,
+                        name: req.user.name,
+                        profile_picture: req.user.profile_picture,
+                        access_token: accessToken
+                    }
+                });
+            } catch (err) {
+                console.error('Error refreshing token:', err.stack);
+                res.status(500).json({ message: 'Server error' });
+            }
+        });
 
         // Public home page
         this.router.get('/', (req, res) => {

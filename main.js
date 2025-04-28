@@ -12,6 +12,10 @@ const WatchHistoryService = require('./services/WatchHistoryService');
 const WatchlistService = require('./services/WatchlistService');
 const js2xmlparser = require("js2xmlparser");
 const setupSwagger = require("./swagger");
+const TokenService = require('./services/TokenService');
+
+
+
 
 class App {
     constructor(config) {
@@ -73,7 +77,9 @@ class App {
             {path: '/subscriptions', service: new SubscriptionService(this.db)},
             {path: '/watch-history', service: new WatchHistoryService(this.db)},
             {path: '/watchlist', service: new WatchlistService(this.db)}
+            
         ];
+        const tokenService = new TokenService();
 
         this.services.forEach(({path, service}) => {
             this.app.use(path, (req, res, next) => {
@@ -92,7 +98,8 @@ class App {
         });
 
         // Initialize AuthService separately for OAuth (as it directly modifies the app)
-        new AuthService(this.app, new UserService(this.db), this.db);
+        new AuthService(this.app, new UserService(this.db), this.db, tokenService);
+
 
         console.log('All services initialized successfully.');
     }
