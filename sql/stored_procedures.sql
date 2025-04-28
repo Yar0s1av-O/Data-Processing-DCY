@@ -117,3 +117,23 @@ $$;
 
 ALTER PROCEDURE public.sp_pay_subscription(integer, smallint)
     OWNER TO postgres;
+
+
+CREATE OR REPLACE PROCEDURE public.sp_insert_into_watch_history(
+    IN _profile_id INTEGER,
+    IN _watchable_id INTEGER,
+    IN _time_stopped TIME WITHOUT TIME ZONE
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Insert the new watch history record
+    INSERT INTO public."WatchHistory"
+    (profile_id, watchable_id, time_stopped)
+    VALUES
+    (_profile_id, _watchable_id, _time_stopped);
+END;
+$$;
+
+ALTER PROCEDURE public.sp_insert_into_watch_history(integer, integer, time without time zone)
+    OWNER TO postgres;

@@ -8,6 +8,7 @@ const ProfileService = require('./services/ProfileService'); // Profile service
 const SubscriptionService = require('./services/SubscriptionService'); // Subscription service
 const AuthService = require('./services/AuthService'); // Google OAuth service
 const ExportService = require('./services/ExportService'); // Export service
+const WatchHistoryService = require('./services/WatchHistoryService');
 const js2xmlparser = require("js2xmlparser");
 const setupSwagger = require("./swagger");
 
@@ -65,14 +66,14 @@ class App {
 
         // Register all services dynamically
         this.services = [
-            { path: '/users', service: new UserService(this.db) },
-            { path: '/profiles', service: new ProfileService(this.db) },
-            { path: '/exports', service: new ExportService(this.db) },
-            { path: '/subscriptions', service: new SubscriptionService(this.db) },
-
+            {path: '/users', service: new UserService(this.db)},
+            {path: '/profiles', service: new ProfileService(this.db)},
+            {path: '/exports', service: new ExportService(this.db)},
+            {path: '/subscriptions', service: new SubscriptionService(this.db)},
+            {path: '/watchhistory', service: new WatchHistoryService(this.db)}
         ];
 
-        this.services.forEach(({ path, service }) => {
+        this.services.forEach(({path, service}) => {
             this.app.use(path, (req, res, next) => {
                 const format = req.query.format;
                 res.formatResponse = (data, status = 200) => {
