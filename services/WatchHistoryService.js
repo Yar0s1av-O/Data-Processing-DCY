@@ -19,11 +19,11 @@ class WatchHistoryService {
     }
 
     initializeRoutes() {
-        this.router.post('/create', this.createWatchHistoryRecord.bind(this)); // Create a profile
-        this.router.get('/', this.getAllWatchHistoryRecords.bind(this)); // Get all profiles
-        this.router.get('/:id', this.getAllWatchHistoryRecordsById.bind(this)); // Get profile by ID
-        this.router.put('/:id1/:id2', this.updateWatchHistoryRecordsById.bind(this)); // Update profile
-        this.router.delete('/:id1/:id2', this.deleteWatchHistoryRecordsById.bind(this)); // Delete profile
+        this.router.post('/create', this.createWatchHistoryRecord.bind(this)); // Create a record
+        this.router.get('/', this.getAllWatchHistoryRecords.bind(this)); // Get all records
+        this.router.get('/:id', this.getWatchHistoryRecordById.bind(this)); // Get a record by ID
+        this.router.put('/:id1/:id2', this.updateWatchHistoryRecordById.bind(this)); // Update a record by profile_id and watchable_id
+        this.router.delete('/:id1/:id2', this.deleteWatchHistoryRecordById.bind(this)); // Delete a record by profile_id and watchable_id
     }
 
     async createWatchHistoryRecord(req, res) {
@@ -48,6 +48,7 @@ class WatchHistoryService {
         }
     }
 
+    // READ: Get all watch history records
     async getAllWatchHistoryRecords(req, res) {
         try {
             const result = await this.db.query('SELECT * FROM "Watch history"');
@@ -58,7 +59,8 @@ class WatchHistoryService {
         }
     }
 
-    async getAllWatchHistoryRecordsById(req, res) {
+    // READ: Get a single watch history record by profile_id
+    async getWatchHistoryRecordById(req, res) {
         const { id } = req.params;
 
         if (!id) {
@@ -77,9 +79,10 @@ class WatchHistoryService {
         }
     }
 
-    async updateWatchHistoryRecordsById(req, res) {
-        const { id1, id2 } = req.params; // profile_id and watchable_id
-        const { time_stopped } = req.body; // new time value
+    // UPDATE: Update the time_stopped for a watch history record by profile_id and watchable_id
+    async updateWatchHistoryRecordById(req, res) {
+        const { id1, id2 } = req.params;
+        const { time_stopped } = req.body;
 
         if (!id1 || !id2) {
             return formatResponse(req, res, { message: 'Both profile_id and watchable_id are required.' }, 400);
@@ -87,17 +90,13 @@ class WatchHistoryService {
 
         try {
             const updateQuery = `
-            UPDATE "Watch history"
-            SET time_stopped = COALESCE($1, time_stopped)
-            WHERE profile_id = $2 AND watchable_id = $3
-            RETURNING profile_id, watchable_id, time_stopped;
-        `;
+                UPDATE "Watch history"
+                SET time_stopped = COALESCE($1, time_stopped)
+                WHERE profile_id = $2 AND watchable_id = $3
+                RETURNING profile_id, watchable_id, time_stopped;
+            `;
 
-            const result = await this.db.query(updateQuery, [
-                time_stopped,
-                id1,
-                id2,
-            ]);
+            const result = await this.db.query(updateQuery, [time_stopped, id1, id2]);
 
             if (result.rows.length === 0) {
                 return formatResponse(req, res, { message: 'Watch history record not found.' }, 404);
@@ -113,7 +112,8 @@ class WatchHistoryService {
         }
     }
 
-    async deleteWatchHistoryRecordsById(req, res) {
+    // DELETE: Delete a watch history record by profile_id and watchable_id
+    async deleteWatchHistoryRecordById(req, res) {
         const { id1, id2 } = req.params;
 
         if (!id1 || !id2) {
@@ -122,10 +122,10 @@ class WatchHistoryService {
 
         try {
             const deleteQuery = `
-            DELETE FROM "Watch history"
-            WHERE profile_id = $1 AND watchable_id = $2
-            RETURNING profile_id, watchable_id;
-        `;
+                DELETE FROM "Watch history"
+                WHERE profile_id = $1 AND watchable_id = $2
+                RETURNING profile_id, watchable_id;
+            `;
 
             const result = await this.db.query(deleteQuery, [id1, id2]);
 
@@ -133,7 +133,7 @@ class WatchHistoryService {
                 return formatResponse(req, res, { message: 'Watch history record not found.' }, 404);
             }
 
-            formatResponse(req, res, { message: 'Watch history record deleted successfully!' }, 200);
+            formatResponse(req, res, { message: 'Watch history record deleted successfully!' }, 204);
         } catch (err) {
             console.error('Error deleting watch history record:', err.stack);
             formatResponse(req, res, { message: 'Failed to delete watch history record', error: err.message }, 500);
@@ -143,8 +143,6 @@ class WatchHistoryService {
     getRouter() {
         return this.router;
     }
-
-
 }
 
 module.exports = WatchHistoryService;
