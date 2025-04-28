@@ -240,6 +240,56 @@ class UserService {
     getRouter() {
         return this.router;
     }
+
+    // CREATE: Add user through OAuth
+    async addUserThroughOAuth(profile) {
+        try {
+            const existingUserResult = await this.db.query('SELECT * FROM "Users" WHERE email = $1', [profile.email]);
+            
+            if (existingUserResult.rows.length > 0) {
+                const existingUser = existingUserResult.rows[0];
+    
+                // If the user exists but has no name or profile picture, update them
+                if (!existingUser.name || !existingUser.profile_picture) {
+                    const updatedUser = await this.db.query(
+                        `UPDATE "Users"
+                         SET name = COALESCE($1, name),
+                             profile_picture = COALESCE($2, profile_picture)
+                         WHERE email = $3
+                         RETURNING *`,
+                        [
+                            profile.displayName || profile.given_name || 'Unknown',
+                            profile.picture || null,
+                            profile.email
+                        ]
+                    );
+                    return updatedUser.rows[0];
+                }
+    
+                // Return the existing user if no update needed
+                return existingUser;
+            }
+    
+            // Insert a brand new user if not found
+            const newUser = await this.db.query(
+                `INSERT INTO "Users" (email, name, profile_picture)
+                 VALUES ($1, $2, $3)
+                 RETURNING *`,
+                [
+                    profile.email,
+                    profile.displayName || profile.given_name || 'Unknown',
+                    profile.picture || null
+                ]
+            );
+    
+            return newUser.rows[0];
+        } catch (error) {
+            console.error('Error adding/updating user through OAuth:', error);
+            throw error;
+        }
+    }
+    
+    
 }
 
 module.exports = UserService;
