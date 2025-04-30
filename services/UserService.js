@@ -2,8 +2,8 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const js2xmlparser = require("js2xmlparser");
 const jwt = require('jsonwebtoken');
+const Joi = require('joi');
 
-// Improved formatResponse function (from earlier)
 function formatResponse(req, res, data, status = 200) {
     const acceptHeader = req.headers.accept;
     const urlFormat = req.query.format;
@@ -34,10 +34,17 @@ class UserService {
     }
 
     async loginUser(req, res) {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return formatResponse(req, res, { message: 'Email and password are required.' }, 400);
+        const schema = Joi.object({
+            email: Joi.string().email().required(),
+            password: Joi.string().required()
+        });
+
+        const { error, value } = schema.validate(req.body);
+        if (error) {
+            return formatResponse(req, res, { message: error.details[0].message }, 400);
         }
+
+        const { email, password } = value;
 
         try {
             const result = await this.db.query('SELECT * FROM "Users" WHERE email = $1', [email]);
@@ -78,10 +85,19 @@ class UserService {
     }
 
     async registerUser(req, res) {
-        const { email, password, subscription_type_id = 1, failed_login_attempts = 0 } = req.body;
-        if (!email || !password) {
-            return formatResponse(req, res, { message: 'Email and password are required.' }, 400);
+        const schema = Joi.object({
+            email: Joi.string().email().required(),
+            password: Joi.string().min(6).required(),
+            subscription_type_id: Joi.number().integer().optional(),
+            failed_login_attempts: Joi.number().integer().optional()
+        });
+
+        const { error, value } = schema.validate(req.body);
+        if (error) {
+            return formatResponse(req, res, { message: error.details[0].message }, 400);
         }
+
+        const { email, password, subscription_type_id = 1, failed_login_attempts = 0 } = value;
 
         try {
             const userCheck = await this.db.query('SELECT * FROM "Users" WHERE email = $1', [email]);
@@ -113,10 +129,17 @@ class UserService {
     }
 
     async inviteUser(req, res) {
-        const { invited_user_email, invite_by_user_id } = req.body;
-        if (!invited_user_email || !invite_by_user_id) {
-            return formatResponse(req, res, { message: 'invited_user_email and invite_by_user_id are required.' }, 400);
+        const schema = Joi.object({
+            invited_user_email: Joi.string().email().required(),
+            invite_by_user_id: Joi.number().integer().required()
+        });
+
+        const { error, value } = schema.validate(req.body);
+        if (error) {
+            return formatResponse(req, res, { message: error.details[0].message }, 400);
         }
+
+        const { invited_user_email, invite_by_user_id } = value;
 
         try {
             const inviteCheck = await this.db.query('SELECT * FROM "invitations" WHERE invited_user_email = $1 AND invite_by_user_id = $2',
@@ -125,11 +148,7 @@ class UserService {
                 return formatResponse(req, res, { message: 'This email has already been invited.' }, 400);
             }
 
-            await this.db.query(
-                'CALL sp_insert_into_invitations($1, $2)',
-                [invited_user_email, invite_by_user_id]
-            );
-
+            await this.db.query('CALL sp_insert_into_invitations($1, $2)', [invited_user_email, invite_by_user_id]);
             return formatResponse(req, res, { message: 'Invitation sent successfully.' }, 201);
 
         } catch (err) {
@@ -138,37 +157,21 @@ class UserService {
         }
     }
 
-    async getAllUsers(req, res) {
-        try {
-            const result = await this.db.query('SELECT * FROM "Users"');
-            return formatResponse(req, res, result.rows, 200);
-        } catch (err) {
-            console.error('Fetch users error:', err.stack);
-            return formatResponse(req, res, { message: 'Internal server error' }, 500);
-        }
-    }
-
-    async getUserById(req, res) {
-        const { id } = req.params;
-        try {
-            const result = await this.db.query('SELECT * FROM "Users" WHERE user_id = $1', [id]);
-            if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'User not found.' }, 404);
-            }
-            return formatResponse(req, res, result.rows[0], 200);
-        } catch (err) {
-            console.error('Fetch user by id error:', err.stack);
-            return formatResponse(req, res, { message: 'Internal server error' }, 500);
-        }
-    }
-
     async updateUser(req, res) {
         const { id } = req.params;
-        const { email, password, subscription_type_id, failed_login_attempts } = req.body;
+        const schema = Joi.object({
+            email: Joi.string().email().optional(),
+            password: Joi.string().min(6).optional(),
+            subscription_type_id: Joi.number().integer().optional(),
+            failed_login_attempts: Joi.number().integer().optional()
+        });
 
-        if (!email && !password && !subscription_type_id && !failed_login_attempts) {
-            return formatResponse(req, res, { message: 'At least one field must be provided for update.' }, 400);
+        const { error, value } = schema.validate(req.body);
+        if (error) {
+            return formatResponse(req, res, { message: error.details[0].message }, 400);
         }
+
+        const { email, password, subscription_type_id, failed_login_attempts } = value;
 
         try {
             let hashedPassword = null;
@@ -209,14 +212,36 @@ class UserService {
         }
     }
 
+    async getAllUsers(req, res) {
+        try {
+            const result = await this.db.query('SELECT * FROM "Users"');
+            return formatResponse(req, res, result.rows, 200);
+        } catch (err) {
+            console.error('Fetch users error:', err.stack);
+            return formatResponse(req, res, { message: 'Internal server error' }, 500);
+        }
+    }
+
+    async getUserById(req, res) {
+        const { id } = req.params;
+        try {
+            const result = await this.db.query('SELECT * FROM "Users" WHERE user_id = $1', [id]);
+            if (result.rows.length === 0) {
+                return formatResponse(req, res, { message: 'User not found.' }, 404);
+            }
+            return formatResponse(req, res, result.rows[0], 200);
+        } catch (err) {
+            console.error('Fetch user by id error:', err.stack);
+            return formatResponse(req, res, { message: 'Internal server error' }, 500);
+        }
+    }
+
     async deleteUser(req, res) {
         const { id } = req.params;
-
-        const client = await this.db.pool.connect(); // transaction version
+        const client = await this.db.pool.connect();
 
         try {
             await client.query('BEGIN');
-
             await client.query('DELETE FROM "Profiles" WHERE user_id = $1', [id]);
             const result = await client.query('DELETE FROM "Users" WHERE user_id = $1 RETURNING user_id', [id]);
 
@@ -226,7 +251,7 @@ class UserService {
             }
 
             await client.query('COMMIT');
-            res.status(204).send(); // 204 No Content (no response body)
+            res.status(204).send();
 
         } catch (err) {
             console.error('Delete user error:', err.stack);
@@ -241,15 +266,11 @@ class UserService {
         return this.router;
     }
 
-    // CREATE: Add user through OAuth
     async addUserThroughOAuth(profile) {
         try {
             const existingUserResult = await this.db.query('SELECT * FROM "Users" WHERE email = $1', [profile.email]);
-            
             if (existingUserResult.rows.length > 0) {
                 const existingUser = existingUserResult.rows[0];
-    
-                // If the user exists but has no name or profile picture, update them
                 if (!existingUser.name || !existingUser.profile_picture) {
                     const updatedUser = await this.db.query(
                         `UPDATE "Users"
@@ -265,12 +286,9 @@ class UserService {
                     );
                     return updatedUser.rows[0];
                 }
-    
-                // Return the existing user if no update needed
                 return existingUser;
             }
-    
-            // Insert a brand new user if not found
+
             const newUser = await this.db.query(
                 `INSERT INTO "Users" (email, name, profile_picture)
                  VALUES ($1, $2, $3)
@@ -281,15 +299,12 @@ class UserService {
                     profile.picture || null
                 ]
             );
-    
             return newUser.rows[0];
         } catch (error) {
             console.error('Error adding/updating user through OAuth:', error);
             throw error;
         }
     }
-    
-    
 }
 
 module.exports = UserService;
