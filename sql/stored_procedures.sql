@@ -153,3 +153,39 @@ $$;
 
 ALTER PROCEDURE public.sp_insert_into_watchlist(integer, integer)
     OWNER TO postgres;
+
+
+CREATE OR REPLACE PROCEDURE sp_insert_into_preferences(
+    IN p_profile_id INT,
+    IN p_genre_id INT
+)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO "Preferences" (profile_id, genre_id)
+    VALUES (p_profile_id, p_genre_id)
+    ON CONFLICT DO NOTHING; -- Avoid duplicate entries (assuming composite PK or unique constraint)
+END;
+$$;
+
+
+ALTER PROCEDURE public.sp_insert_into_preferences(integer, integer)
+    OWNER TO postgres;
+
+
+CREATE OR REPLACE PROCEDURE sp_insert_into_preferences(
+    IN p_profile_id INT,
+    IN p_genre_id INT
+)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO "Preferences" (profile_id, genre_id)
+    VALUES (p_profile_id, p_genre_id)
+    ON CONFLICT DO NOTHING; -- Avoid duplicate entries (assuming composite PK or unique constraint)
+END;
+$$;
+
+
+ALTER PROCEDURE public.sp_insert_into_preferences(integer, integer)
+    OWNER TO postgres;
