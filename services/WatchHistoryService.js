@@ -1,5 +1,6 @@
 const express = require('express');
 const js2xmlparser = require('js2xmlparser');
+const Joi = require('joi');
 
 // Utility function to format response based on query parameter
 function formatResponse(req, res, data, status = 200) {
@@ -15,23 +16,36 @@ class WatchHistoryService {
     constructor(db) {
         this.db = db; // Database instance
         this.router = express.Router();
+
+        // Validation schemas
+        this.createSchema = Joi.object({
+            profile_id: Joi.number().integer().required(),
+            watchable_id: Joi.number().integer().required(),
+            time_stopped: Joi.number().min(0).required(),
+        });
+
+        this.updateSchema = Joi.object({
+            time_stopped: Joi.number().min(0).required(),
+        });
+
         this.initializeRoutes();
     }
 
     initializeRoutes() {
-        this.router.post('/create', this.createWatchHistoryRecord.bind(this)); // Create a record
-        this.router.get('/', this.getAllWatchHistoryRecords.bind(this)); // Get all records
-        this.router.get('/:id', this.getWatchHistoryRecordById.bind(this)); // Get a record by ID
-        this.router.put('/:id1/:id2', this.updateWatchHistoryRecordById.bind(this)); // Update a record by profile_id and watchable_id
-        this.router.delete('/:id1/:id2', this.deleteWatchHistoryRecordById.bind(this)); // Delete a record by profile_id and watchable_id
+        this.router.post('/create', this.createWatchHistoryRecord.bind(this));
+        this.router.get('/', this.getAllWatchHistoryRecords.bind(this));
+        this.router.get('/:id', this.getWatchHistoryRecordById.bind(this));
+        this.router.put('/:id1/:id2', this.updateWatchHistoryRecordById.bind(this));
+        this.router.delete('/:id1/:id2', this.deleteWatchHistoryRecordById.bind(this));
     }
 
     async createWatchHistoryRecord(req, res) {
-        const { profile_id, watchable_id, time_stopped} = req.body;
-
-        if (!profile_id || !watchable_id || !time_stopped) {
-            return formatResponse(req, res, { message: 'Missing required fields.' }, 400);
+        const { error } = this.createSchema.validate(req.body);
+        if (error) {
+            return formatResponse(req, res, { message: 'Validation failed', details: error.details }, 422);
         }
+
+        const { profile_id, watchable_id, time_stopped } = req.body;
 
         try {
             await this.db.query(
@@ -40,15 +54,14 @@ class WatchHistoryService {
             );
 
             formatResponse(req, res, {
-                message: 'watch history records created successfully!',
+                message: 'Watch history record created successfully!',
             }, 201);
         } catch (err) {
-            console.error('Error during watch history records registration:', err.stack);
+            console.error('Error during watch history record creation:', err.stack);
             formatResponse(req, res, { message: 'Server error', error: err.message }, 500);
         }
     }
 
-    // READ: Get all watch history records
     async getAllWatchHistoryRecords(req, res) {
         try {
             const result = await this.db.query('SELECT * FROM "Watch history"');
@@ -59,7 +72,6 @@ class WatchHistoryService {
         }
     }
 
-    // READ: Get a single watch history record by profile_id
     async getWatchHistoryRecordById(req, res) {
         const { id } = req.params;
 
@@ -79,9 +91,14 @@ class WatchHistoryService {
         }
     }
 
-    // UPDATE: Update the time_stopped for a watch history record by profile_id and watchable_id
     async updateWatchHistoryRecordById(req, res) {
         const { id1, id2 } = req.params;
+
+        const { error } = this.updateSchema.validate(req.body);
+        if (error) {
+            return formatResponse(req, res, { message: 'Validation failed', details: error.details }, 422);
+        }
+
         const { time_stopped } = req.body;
 
         if (!id1 || !id2) {
@@ -107,12 +124,11 @@ class WatchHistoryService {
                 watchHistory: result.rows[0],
             }, 200);
         } catch (err) {
-            console.error('Error updating watch history time_stopped:', err.stack);
+            console.error('Error updating watch history record:', err.stack);
             formatResponse(req, res, { message: 'Failed to update watch history', error: err.message }, 500);
         }
     }
 
-    // DELETE: Delete a watch history record by profile_id and watchable_id
     async deleteWatchHistoryRecordById(req, res) {
         const { id1, id2 } = req.params;
 
@@ -133,7 +149,7 @@ class WatchHistoryService {
                 return formatResponse(req, res, { message: 'Watch history record not found.' }, 404);
             }
 
-            formatResponse(req, res, { message: 'Watch history record deleted successfully!' }, 204);
+            res.status(204).send();
         } catch (err) {
             console.error('Error deleting watch history record:', err.stack);
             formatResponse(req, res, { message: 'Failed to delete watch history record', error: err.message }, 500);
