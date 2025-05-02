@@ -13,6 +13,7 @@ const WatchlistService = require('./services/WatchlistService');
 const PreferenceService = require('./services/PreferenceService');
 const QualityService = require('./services/QualityService');
 const LanguageService = require('./services/LanguageService');
+const SubtitleService = require('./services/SubtitleService');
 const js2xmlparser = require("js2xmlparser");
 const setupSwagger = require("./swagger");
 const TokenService = require('./services/TokenService');
@@ -82,7 +83,8 @@ class App {
             {path: '/watchlist', service: new WatchlistService(this.db)},
             {path: '/preference', service: new PreferenceService(this.db)},
             {path: '/quality', service: new QualityService(this.db)},
-            {path: '/language', service: new LanguageService(this.db)}
+            {path: '/language', service: new LanguageService(this.db)},
+            {path: '/subtitles', service:new SubtitleService(this.db)}
             
         ];
         const tokenService = new TokenService();
