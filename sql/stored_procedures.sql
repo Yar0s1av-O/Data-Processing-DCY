@@ -189,3 +189,23 @@ $$;
 
 ALTER PROCEDURE public.sp_insert_into_preferences(integer, integer)
     OWNER TO postgres;
+
+
+CREATE OR REPLACE PROCEDURE sp_insert_into_watchable(
+    p_title TEXT,
+    p_description TEXT,
+    p_genre_id INTEGER,
+    p_duration TIME,
+    p_season INTEGER,
+    p_episode INTEGER
+)
+LANGUAGE 'plpgsql'
+AS $$
+BEGIN
+    INSERT INTO "Watchable" (title, description, genre_id, duration, season, episode)
+    VALUES (p_title, p_description, p_genre_id, p_duration, p_season, p_episode);
+END;
+$$;
+
+ALTER PROCEDURE public.sp_insert_into_watchable(text, text, integer, time, integer, integer)
+    OWNER TO postgres;
