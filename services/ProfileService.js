@@ -21,13 +21,13 @@ class ProfileService {
             profile_name: Joi.string().min(2).max(100).required(),
             profile_photo_link: Joi.string().uri().max(300).required(),
             age: Joi.number().integer().min(0).required(),
-            language: Joi.string().max(50).required(),
+            language_id: Joi.number().required(),
         });
         this.profileUpdateSchema = Joi.object({
             profile_photo_link: Joi.string().uri().max(300).optional(),
             age: Joi.number().integer().min(0).optional(),
-            language: Joi.string().max(50).optional(),
-            name: Joi.string().max(100).optional(),
+            language_id: Joi.number().optional(),
+            profile_name: Joi.string().min(2).max(100).optional(),
         });
         this.initializeRoutes();
     }
@@ -46,12 +46,12 @@ class ProfileService {
             return formatResponse(req, res, { message: 'Validation failed', details: error.details }, 422);
         }
 
-        const { userid, profile_name, profile_photo_link, age, language } = req.body;
+        const { userid, profile_name, profile_photo_link, age, language_id } = req.body;
 
         try {
             await this.db.query(
                 'CALL sp_insert_into_profiles($1, $2, $3, $4, $5)',
-                [userid, profile_name, profile_photo_link, age, language]
+                [userid, profile_name, profile_photo_link, age, language_id]
             );
 
             formatResponse(req, res, { message: 'Profile created successfully!' }, 201);
@@ -98,7 +98,7 @@ class ProfileService {
             return formatResponse(req, res, { message: 'Validation failed', details: error.details }, 422);
         }
 
-        const { profile_photo_link, age, language, name } = req.body;
+        const { profile_photo_link, age, language_id, profile_name } = req.body;
 
         if (!id) {
             return formatResponse(req, res, { message: 'Profile ID is required.' }, 400);
@@ -109,17 +109,17 @@ class ProfileService {
                 UPDATE "Profiles"
                 SET profile_photo_link = COALESCE($1, profile_photo_link),
                     age = COALESCE($2, age),
-                    language = COALESCE($3, language),
+                    language_id = COALESCE($3, language_id),
                     profile_name = COALESCE($4, profile_name)
                 WHERE profile_id = $5
-                RETURNING profile_id, profile_photo_link, age, language, profile_name`;
+                RETURNING profile_id, profile_photo_link, age, language_id, profile_name`;
 
             const result = await this.db.query(updateQuery, [
                 profile_photo_link,
                 age,
-                language,
-                name,
-                id,
+                language_id,
+                profile_name,
+                id
             ]);
 
             if (result.rows.length === 0) {

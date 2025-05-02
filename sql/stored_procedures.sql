@@ -20,19 +20,19 @@ CREATE OR REPLACE PROCEDURE SP_insert_into_profiles(
     _profile_name TEXT,
     _profile_photo_link TEXT,
     _age SMALLINT,
-    _language TEXT
+    _language_id INTEGER
 )
-LANGUAGE plpgsql AS $$
+LANGUAGE 'plpgsql' AS $$
 BEGIN
     -- Insert the new profile
     INSERT INTO public."Profiles" 
-    (user_id, profile_name, profile_photo_link, age, language)
+    (user_id, profile_name, profile_photo_link, age, language_id)
     VALUES
-    (_user_id, _profile_name, _profile_photo_link, _age, _language);
+    (_user_id, _profile_name, _profile_photo_link, _age, _language_id);
 END;
 $$;
 $BODY$;
-ALTER PROCEDURE public.sp_insert_into_profiles(text, integer, text, text, integer, text)
+ALTER PROCEDURE public.sp_insert_into_profiles(text, integer, text, text, integer, integer)
     OWNER TO postgres;
 
 CREATE OR REPLACE PROCEDURE public.sp_insert_subscription(
