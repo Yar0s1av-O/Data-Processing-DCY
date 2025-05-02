@@ -182,7 +182,7 @@ AS $$
 BEGIN
     INSERT INTO "Preferences" (profile_id, genre_id)
     VALUES (p_profile_id, p_genre_id)
-    ON CONFLICT DO NOTHING; -- Avoid duplicate entries (assuming composite PK or unique constraint)
+    ON CONFLICT DO NOTHING;
 END;
 $$;
 

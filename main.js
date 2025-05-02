@@ -11,6 +11,7 @@ const ExportService = require('./services/ExportService'); // Export service
 const WatchHistoryService = require('./services/WatchHistoryService');
 const WatchlistService = require('./services/WatchlistService');
 const PreferenceService = require('./services/PreferenceService');
+const QualityService = require('./services/QualityService');
 const js2xmlparser = require("js2xmlparser");
 const setupSwagger = require("./swagger");
 const TokenService = require('./services/TokenService');
@@ -78,7 +79,8 @@ class App {
             {path: '/subscriptions', service: new SubscriptionService(this.db)},
             {path: '/watch-history', service: new WatchHistoryService(this.db)},
             {path: '/watchlist', service: new WatchlistService(this.db)},
-            {path: '/preference', service: new PreferenceService(this.db)}
+            {path: '/preference', service: new PreferenceService(this.db)},
+            {path: '/quality', service: new QualityService(this.db)}
             
         ];
         const tokenService = new TokenService();
