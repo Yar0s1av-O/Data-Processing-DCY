@@ -43,6 +43,8 @@ class WatchableService {
         this.router.get('/:id', this.getWatchableById.bind(this));
         this.router.put('/:id', this.updateWatchable.bind(this));
         this.router.delete('/:id', this.deleteWatchable.bind(this));
+        this.router.get('/title/:title', this.getWatchablesByTitle.bind(this)); // NEW
+        this.router.get('/title/:title/genre/:genre_id', this.getWatchablesByTitleAndGenre.bind(this)); // NEW
     }
 
     // CREATE: Insert a new watchable using stored procedure
@@ -93,6 +95,56 @@ class WatchableService {
         } catch (err) {
             console.error('Error retrieving watchable:', err.stack);
             formatResponse(req, res, { message: 'Failed to retrieve watchable', error: err.message }, 500);
+        }
+    }
+
+    // NEW: Get watchables by title
+    async getWatchablesByTitle(req, res) {
+        const { title } = req.params;
+
+        if (!title) {
+            return formatResponse(req, res, { message: 'Title is required.' }, 400);
+        }
+
+        try {
+            const result = await this.db.query(
+                'SELECT * FROM "Watchable" WHERE LOWER(title) = LOWER($1)',
+                [title]
+            );
+
+            if (result.rows.length === 0) {
+                return formatResponse(req, res, { message: 'No watchables found with this title.' }, 404);
+            }
+
+            formatResponse(req, res, result.rows, 200);
+        } catch (err) {
+            console.error('Error retrieving watchables by title:', err.stack);
+            formatResponse(req, res, { message: 'Failed to retrieve watchables by title', error: err.message }, 500);
+        }
+    }
+
+// NEW: Get watchables by title and genre
+    async getWatchablesByTitleAndGenre(req, res) {
+        const { title, genre_id } = req.params;
+
+        if (!title || !genre_id) {
+            return formatResponse(req, res, { message: 'Title and genre_id are required.' }, 400);
+        }
+
+        try {
+            const result = await this.db.query(
+                'SELECT * FROM "Watchable" WHERE LOWER(title) = LOWER($1) AND genre_id = $2',
+                [title, genre_id]
+            );
+
+            if (result.rows.length === 0) {
+                return formatResponse(req, res, { message: 'No watchables found with this title and genre.' }, 404);
+            }
+
+            formatResponse(req, res, result.rows, 200);
+        } catch (err) {
+            console.error('Error retrieving watchables by title and genre:', err.stack);
+            formatResponse(req, res, { message: 'Failed to retrieve watchables by title and genre', error: err.message }, 500);
         }
     }
 
