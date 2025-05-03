@@ -43,18 +43,19 @@ class WatchableService {
         this.router.get('/:id', this.getWatchableById.bind(this));
         this.router.put('/:id', this.updateWatchable.bind(this));
         this.router.delete('/:id', this.deleteWatchable.bind(this));
-        this.router.get('/title/:title', this.getWatchablesByTitle.bind(this)); // NEW
-        this.router.get('/title/:title/genre/:genre_id', this.getWatchablesByTitleAndGenre.bind(this)); // NEW
+        this.router.get('/preferences/:profile_id', this.getWatchablesByProfilePreferences.bind(this));
+        this.router.get('/title/:title', this.getWatchablesByTitle.bind(this));
+        this.router.get('/genre/:genre_name', this.getWatchablesByGenreName.bind(this));
     }
 
     // CREATE: Insert a new watchable using stored procedure
     async createWatchable(req, res) {
-        const { error } = this.watchableCreateSchema.validate(req.body);
+        const {error} = this.watchableCreateSchema.validate(req.body);
         if (error) {
-            return formatResponse(req, res, { message: 'Validation failed', details: error.details }, 422);
+            return formatResponse(req, res, {message: 'Validation failed', details: error.details}, 422);
         }
 
-        const { title, description, genre_id, duration, season, episode } = req.body;
+        const {title, description, genre_id, duration, season, episode} = req.body;
 
         try {
             await this.db.query(
@@ -62,10 +63,10 @@ class WatchableService {
                 [title, description, genre_id, duration, season, episode]
             );
 
-            formatResponse(req, res, { message: 'Watchable created successfully!' }, 201);
+            formatResponse(req, res, {message: 'Watchable created successfully!'}, 201);
         } catch (err) {
             console.error('Error creating watchable:', err.stack);
-            formatResponse(req, res, { message: 'Server error', error: err.message }, 500);
+            formatResponse(req, res, {message: 'Server error', error: err.message}, 500);
         }
     }
 
@@ -75,88 +76,96 @@ class WatchableService {
             formatResponse(req, res, result.rows, 200);
         } catch (err) {
             console.error('Error retrieving watchables:', err.stack);
-            formatResponse(req, res, { message: 'Failed to retrieve watchables', error: err.message }, 500);
+            formatResponse(req, res, {message: 'Failed to retrieve watchables', error: err.message}, 500);
         }
     }
 
     async getWatchableById(req, res) {
-        const { id } = req.params;
+        const {id} = req.params;
 
         if (!id) {
-            return formatResponse(req, res, { message: 'Watchable ID is required.' }, 400);
+            return formatResponse(req, res, {message: 'Watchable ID is required.'}, 400);
         }
 
         try {
             const result = await this.db.query('SELECT * FROM "Watchable" WHERE watchable_id = $1', [id]);
             if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'Watchable not found.' }, 404);
+                return formatResponse(req, res, {message: 'Watchable not found.'}, 404);
             }
             formatResponse(req, res, result.rows[0], 200);
         } catch (err) {
             console.error('Error retrieving watchable:', err.stack);
-            formatResponse(req, res, { message: 'Failed to retrieve watchable', error: err.message }, 500);
+            formatResponse(req, res, {message: 'Failed to retrieve watchable', error: err.message}, 500);
         }
     }
 
     // NEW: Get watchables by title
     async getWatchablesByTitle(req, res) {
-        const { title } = req.params;
+        const {title} = req.params;
 
         if (!title) {
-            return formatResponse(req, res, { message: 'Title is required.' }, 400);
+            return formatResponse(req, res, {message: 'Title is required.'}, 400);
         }
 
         try {
             const result = await this.db.query(
-                'SELECT * FROM "Watchable" WHERE LOWER(title) = LOWER($1)',
-                [title]
+                'SELECT * FROM "Watchable" WHERE title LIKE $1',
+                [`%${title}%`]
             );
 
+
             if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'No watchables found with this title.' }, 404);
+                return formatResponse(req, res, {message: 'No watchables found with this title.'}, 404);
             }
 
             formatResponse(req, res, result.rows, 200);
         } catch (err) {
             console.error('Error retrieving watchables by title:', err.stack);
-            formatResponse(req, res, { message: 'Failed to retrieve watchables by title', error: err.message }, 500);
+            formatResponse(req, res, {message: 'Failed to retrieve watchables by title', error: err.message}, 500);
         }
     }
 
 // NEW: Get watchables by title and genre
-    async getWatchablesByTitleAndGenre(req, res) {
-        const { title, genre_id } = req.params;
+    async getWatchablesByGenreName(req, res) {
+        const { genre_name } = req.params;
 
-        if (!title || !genre_id) {
-            return formatResponse(req, res, { message: 'Title and genre_id are required.' }, 400);
+        if (!genre_name) {
+            return formatResponse(req, res, { message: 'Genre name is required.' }, 400);
         }
 
         try {
             const result = await this.db.query(
-                'SELECT * FROM "Watchable" WHERE LOWER(title) = LOWER($1) AND genre_id = $2',
-                [title, genre_id]
+                `SELECT w.* 
+             FROM "Watchable" w
+             JOIN "Genres" g ON w.genre_id = g.genre_id
+             WHERE g.genre_name ILIKE $1`,
+                [`%${genre_name}%`]
             );
 
             if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'No watchables found with this title and genre.' }, 404);
+                return formatResponse(req, res, { message: 'No watchables found for this genre.' }, 404);
             }
 
             formatResponse(req, res, result.rows, 200);
         } catch (err) {
-            console.error('Error retrieving watchables by title and genre:', err.stack);
-            formatResponse(req, res, { message: 'Failed to retrieve watchables by title and genre', error: err.message }, 500);
+            console.error('Error retrieving watchables by genre:', err.stack);
+            formatResponse(req, res, {
+                message: 'Failed to retrieve watchables by genre',
+                error: err.message
+            }, 500);
         }
     }
 
-    async updateWatchable(req, res) {
-        const { id } = req.params;
 
-        const { error } = this.watchableUpdateSchema.validate(req.body);
+    async updateWatchable(req, res) {
+        const {id} = req.params;
+
+        const {error} = this.watchableUpdateSchema.validate(req.body);
         if (error) {
-            return formatResponse(req, res, { message: 'Validation failed', details: error.details }, 422);
+            return formatResponse(req, res, {message: 'Validation failed', details: error.details}, 422);
         }
 
-        const { title, description, genre_id, duration, season, episode } = req.body;
+        const {title, description, genre_id, duration, season, episode} = req.body;
 
         try {
             const updateQuery = `
@@ -182,7 +191,7 @@ class WatchableService {
             ]);
 
             if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'Watchable not found.' }, 404);
+                return formatResponse(req, res, {message: 'Watchable not found.'}, 404);
             }
 
             formatResponse(req, res, {
@@ -191,12 +200,40 @@ class WatchableService {
             }, 200);
         } catch (err) {
             console.error('Error updating watchable:', err.stack);
-            formatResponse(req, res, { message: 'Failed to update watchable', error: err.message }, 500);
+            formatResponse(req, res, {message: 'Failed to update watchable', error: err.message}, 500);
         }
     }
 
+    async getWatchablesByProfilePreferences(req, res) {
+        const {profile_id} = req.params;
+
+        if (!profile_id) {
+            return formatResponse(req, res, {message: 'Profile ID is required.'}, 400);
+        }
+
+        try {
+            const query = `
+            SELECT w.*
+            FROM "Watchable" w
+            JOIN "Preferences" p ON w.genre_id = p.genre_id
+            WHERE p.profile_id = $1
+        `;
+            const result = await this.db.query(query, [profile_id]);
+
+            if (result.rows.length === 0) {
+                return formatResponse(req, res, {message: 'No watchables found for the given profile preferences.'}, 404);
+            }
+
+            formatResponse(req, res, result.rows, 200);
+        } catch (err) {
+            console.error('Error retrieving watchables by profile preferences:', err.stack);
+            formatResponse(req, res, {message: 'Failed to retrieve watchables', error: err.message}, 500);
+        }
+    }
+
+
     async deleteWatchable(req, res) {
-        const { id } = req.params;
+        const {id} = req.params;
 
         try {
             const result = await this.db.query(
@@ -205,13 +242,13 @@ class WatchableService {
             );
 
             if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'Watchable not found.' }, 404);
+                return formatResponse(req, res, {message: 'Watchable not found.'}, 404);
             }
 
             res.status(204).send();
         } catch (err) {
             console.error('Error deleting watchable:', err.stack);
-            formatResponse(req, res, { message: 'Failed to delete watchable', error: err.message }, 500);
+            formatResponse(req, res, {message: 'Failed to delete watchable', error: err.message}, 500);
         }
     }
 

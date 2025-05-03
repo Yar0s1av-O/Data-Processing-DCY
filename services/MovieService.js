@@ -21,9 +21,9 @@ class MovieService {
     initializeRoutes() {
         this.router.get('/', this.getAllMovies.bind(this));
         this.router.get('/:id', this.getMovieById.bind(this));
-        this.router.get('/genre/:genre_id', this.getMoviesByGenreId.bind(this));
         this.router.get('/title/:title', this.getMoviesByTitle.bind(this)); // New
-        this.router.get('/title/:title/genre/:genre_id', this.getMoviesByTitleAndGenre.bind(this)); // New
+        this.router.get('/genre/:genre_name', this.getMoviesByGenreName.bind(this));
+        this.router.get('/profile/:profile_id', this.getMoviesByProfilePreferences.bind(this));
     }
 
     // READ: Get all movies from the view
@@ -59,28 +59,6 @@ class MovieService {
         }
     }
 
-    // READ: Get movies by genre_id
-    async getMoviesByGenreId(req, res) {
-        const { genre_id } = req.params;
-
-        if (!genre_id) {
-            return formatResponse(req, res, { message: 'Genre ID is required.' }, 400);
-        }
-
-        try {
-            const result = await this.db.query('SELECT * FROM "movies" WHERE genre_id = $1', [genre_id]);
-
-            if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'No movies found for this genre.' }, 404);
-            }
-
-            formatResponse(req, res, result.rows, 200);
-        } catch (err) {
-            console.error('Error retrieving movies by genre:', err.stack);
-            formatResponse(req, res, { message: 'Failed to retrieve movies by genre', error: err.message }, 500);
-        }
-    }
-
     // NEW: Get movies by title
     async getMoviesByTitle(req, res) {
         const { title } = req.params;
@@ -107,29 +85,62 @@ class MovieService {
     }
 
 // NEW: Get movies by title and genre
-    async getMoviesByTitleAndGenre(req, res) {
-        const { title, genre_id } = req.params;
+    async getMoviesByGenreName(req, res) {
+        const { genre_name } = req.params;
 
-        if (!title || !genre_id) {
-            return formatResponse(req, res, { message: 'Title and genre_id are required.' }, 400);
+        if (!genre_name) {
+            return formatResponse(req, res, { message: 'Genre name is required.' }, 400);
         }
 
         try {
             const result = await this.db.query(
-                'SELECT * FROM "movies" WHERE LOWER(title) = LOWER($1) AND genre_id = $2',
-                [title, genre_id]
+                `SELECT m.*
+             FROM movies m
+             JOIN "Genres" g ON m.genre_id = g.genre_id
+             WHERE g.genre_name ILIKE $1`,
+                [`%${genre_name}%`]
             );
 
             if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'No movies found with this title and genre.' }, 404);
+                return formatResponse(req, res, { message: 'No movies found for this genre name.' }, 404);
             }
 
             formatResponse(req, res, result.rows, 200);
         } catch (err) {
-            console.error('Error retrieving movies by title and genre:', err.stack);
-            formatResponse(req, res, { message: 'Failed to retrieve movies by title and genre', error: err.message }, 500);
+            console.error('Error retrieving movies by genre name:', err.stack);
+            formatResponse(req, res, { message: 'Failed to retrieve movies by genre name', error: err.message }, 500);
         }
     }
+
+
+    // READ: Get movies by profile's preferred genres
+    async getMoviesByProfilePreferences(req, res) {
+        const { profile_id } = req.params;
+
+        if (!profile_id) {
+            return formatResponse(req, res, { message: 'Profile ID is required.' }, 400);
+        }
+
+        try {
+            const query = `
+            SELECT m.*
+            FROM movies m
+            JOIN "Preferences" p ON m.genre_id = p.genre_id
+            WHERE p.profile_id = $1
+        `;
+            const result = await this.db.query(query, [profile_id]);
+
+            if (result.rows.length === 0) {
+                return formatResponse(req, res, { message: 'No preferred movies found for this profile.' }, 404);
+            }
+
+            formatResponse(req, res, result.rows, 200);
+        } catch (err) {
+            console.error('Error retrieving preferred movies:', err.stack);
+            formatResponse(req, res, { message: 'Failed to retrieve preferred movies', error: err.message }, 500);
+        }
+    }
+
 
     getRouter() {
         return this.router;

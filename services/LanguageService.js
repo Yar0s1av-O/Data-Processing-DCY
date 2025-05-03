@@ -21,6 +21,7 @@ class LanguageService {
     initializeRoutes() {
         this.router.post('/create', this.createLanguage.bind(this)); // Create a language
         this.router.get('/', this.getAllLanguages.bind(this)); // Get all languages
+        this.router.get('/:language_id', this.getLanguageById.bind(this));
         this.router.put('/:language_id', this.updateLanguageById.bind(this)); // Update language by ID
         this.router.delete('/:language_id', this.deleteLanguageById.bind(this)); // Delete by language_id
     }
@@ -62,6 +63,31 @@ class LanguageService {
         } catch (err) {
             console.error('Error retrieving languages:', err.stack);
             formatResponse(req, res, { message: 'Failed to retrieve languages', error: err.message }, 500);
+        }
+    }
+
+    // READ: Get a single language by ID
+    async getLanguageById(req, res) {
+        const { language_id } = req.params;
+
+        if (!language_id) {
+            return formatResponse(req, res, { message: 'Language ID is required.' }, 400);
+        }
+
+        try {
+            const result = await this.db.query(
+                'SELECT * FROM "Language" WHERE language_id = $1',
+                [language_id]
+            );
+
+            if (result.rows.length === 0) {
+                return formatResponse(req, res, { message: 'Language not found.' }, 404);
+            }
+
+            formatResponse(req, res, result.rows[0], 200);
+        } catch (err) {
+            console.error('Error retrieving language by ID:', err.stack);
+            formatResponse(req, res, { message: 'Failed to retrieve language', error: err.message }, 500);
         }
     }
 
