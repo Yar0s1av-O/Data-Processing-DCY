@@ -5,6 +5,7 @@ const {
   validateUpdateSubscription,
   validatePaySubscription,
 } = require("../validators/SubscriptionValidator");
+const SubscriptionRepository = require("../repositories/SubscriptionRepository");
 
 function formatResponse(req, res, data, status = 200) {
   const format = req.query.format;
@@ -16,9 +17,9 @@ function formatResponse(req, res, data, status = 200) {
 }
 
 class SubscriptionService {
-  constructor(db, subscriptionRepo) {
+  constructor(db) {
     this.db = db;
-    this.subscriptionRepo = subscriptionRepo;
+    this.subscriptionRepo = new SubscriptionRepository(this.db);
     this.router = express.Router();
     this.initializeRoutes();
   }
@@ -38,10 +39,10 @@ class SubscriptionService {
       return formatResponse(req, res, { message: error.details.map(err => err.message) }, 422);
     }
 
-    const { subscription_type_id, subscription_name, subscription_price_euro } = req.body;
+    const {subscription_name, subscription_price_euro } = req.body;
 
     try {
-      await this.subscriptionRepo.create(subscription_type_id, subscription_name, subscription_price_euro);
+      await this.subscriptionRepo.create(subscription_name, subscription_price_euro);
       formatResponse(req, res, { message: "Subscription created successfully!" }, 201);
     } catch (err) {
       console.error("Error during subscription creation:", err.stack);

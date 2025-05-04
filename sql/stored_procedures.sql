@@ -35,7 +35,6 @@ ALTER PROCEDURE public.sp_insert_into_profiles(text, integer, text, text, intege
     OWNER TO postgres;
 
 CREATE OR REPLACE PROCEDURE public.sp_insert_subscription(
-	IN _subscription_type_id integer,
 	IN _subscription_name text,
 	IN _subscription_price_euro real
 )
@@ -44,12 +43,12 @@ AS $BODY$
 BEGIN
     -- Insert the new subscription into the table and return the inserted data
     INSERT INTO public."Subscriptions" 
-    (subscription_type_id, subscription_name, subscription_price_euro)
+    (subscription_name, subscription_price_euro)
     VALUES
-    (_subscription_type_id, _subscription_name, _subscription_price_euro);
+    (_subscription_name, _subscription_price_euro);
 END;
 $BODY$;
-ALTER PROCEDURE public.sp_insert_subscription(integer, text, real)
+ALTER PROCEDURE public.sp_insert_subscription(text, real)
     OWNER TO postgres;
 
 
