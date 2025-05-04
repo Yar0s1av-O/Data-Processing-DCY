@@ -1,33 +1,13 @@
 const express = require('express');
-const js2xmlparser = require('js2xmlparser');
-const Joi = require('joi');
-
-
-// Utility function to format response based on query parameter
-function formatResponse(req, res, data, status = 200) {
-    const format = req.query.format;
-    if (format === 'xml') {
-        res.status(status).set('Content-Type', 'application/xml').send(js2xmlparser.parse('response', data));
-    } else {
-        res.status(status).json(data);
-    }
-}
+const { validateWatchHistoryCreate, validateWatchHistoryUpdate } = require('../validators/WatchHistoryValidator');
+const WatchHistoryRepository = require('../repositories/WatchHistoryRepository');
+const { formatResponse } = require('../utils/formatResponse');
 
 class WatchHistoryService {
     constructor(db) {
-        this.db = db; // Database instance
+        this.db = db;
         this.router = express.Router();
-
-        // Validation schemas
-        this.createSchema = Joi.object({
-            profile_id: Joi.number().integer().required(),
-            watchable_id: Joi.number().integer().required(),
-            time_stopped: Joi.number().min(0).required(),
-        });
-
-        this.updateSchema = Joi.object({
-            time_stopped: Joi.number().min(0).required(),
-        });
+        this.repository = new WatchHistoryRepository(db);
 
         this.initializeRoutes();
     }
@@ -41,7 +21,7 @@ class WatchHistoryService {
     }
 
     async createWatchHistoryRecord(req, res) {
-        const { error } = this.createSchema.validate(req.body);
+        const { error } = validateWatchHistoryCreate(req.body);
         if (error) {
             return formatResponse(req, res, { message: 'Validation failed', details: error.details }, 422);
         }
@@ -49,43 +29,32 @@ class WatchHistoryService {
         const { profile_id, watchable_id, time_stopped } = req.body;
 
         try {
-            await this.db.query(
-                'CALL sp_insert_into_watch_history($1, $2, $3)',
-                [profile_id, watchable_id, time_stopped]
-            );
-
-            formatResponse(req, res, {
-                message: 'Watch history record created successfully!',
-            }, 201);
+            await this.repository.createWatchHistory(profile_id, watchable_id, time_stopped);
+            formatResponse(req, res, { message: 'Watch history record created successfully!' }, 201);
         } catch (err) {
-            console.error('Error during watch history record creation:', err.stack);
-            formatResponse(req, res, { message: 'Server error', error: err.message }, 500);
+            console.error('Error creating watch history record:', err.stack);
+            formatResponse(req, res, { message: 'Internal server error', error: err.message }, 500);
         }
     }
 
     async getAllWatchHistoryRecords(req, res) {
         try {
-            const result = await this.db.query('SELECT * FROM "Watch history"');
-            formatResponse(req, res, result.rows, 200);
+            const records = await this.repository.getAllWatchHistory();
+            formatResponse(req, res, records, 200);
         } catch (err) {
-            console.error('Error retrieving watch history records:', err.stack);
+            console.error('Error retrieving watch history:', err.stack);
             formatResponse(req, res, { message: 'Failed to retrieve watch history records', error: err.message }, 500);
         }
     }
 
     async getWatchHistoryRecordById(req, res) {
         const { id } = req.params;
-
-        if (!id) {
-            return formatResponse(req, res, { message: 'Watch history ID is required.' }, 400);
-        }
-
         try {
-            const result = await this.db.query('SELECT * FROM "Watch history" WHERE profile_id = $1', [id]);
-            if (result.rows.length === 0) {
+            const record = await this.repository.getWatchHistoryByProfileId(id);
+            if (!record) {
                 return formatResponse(req, res, { message: 'Watch history record not found.' }, 404);
             }
-            formatResponse(req, res, result.rows[0], 200);
+            formatResponse(req, res, record, 200);
         } catch (err) {
             console.error('Error retrieving watch history record:', err.stack);
             formatResponse(req, res, { message: 'Failed to retrieve watch history record', error: err.message }, 500);
@@ -94,35 +63,22 @@ class WatchHistoryService {
 
     async updateWatchHistoryRecordById(req, res) {
         const { id1, id2 } = req.params;
-
-        const { error } = this.updateSchema.validate(req.body);
+        const { error } = validateWatchHistoryUpdate(req.body);
         if (error) {
             return formatResponse(req, res, { message: 'Validation failed', details: error.details }, 422);
         }
 
         const { time_stopped } = req.body;
 
-        if (!id1 || !id2) {
-            return formatResponse(req, res, { message: 'Both profile_id and watchable_id are required.' }, 400);
-        }
-
         try {
-            const updateQuery = `
-                UPDATE "Watch history"
-                SET time_stopped = COALESCE($1, time_stopped)
-                WHERE profile_id = $2 AND watchable_id = $3
-                RETURNING profile_id, watchable_id, time_stopped;
-            `;
-
-            const result = await this.db.query(updateQuery, [time_stopped, id1, id2]);
-
-            if (result.rows.length === 0) {
+            const updated = await this.repository.updateWatchHistory(id1, id2, time_stopped);
+            if (!updated) {
                 return formatResponse(req, res, { message: 'Watch history record not found.' }, 404);
             }
 
             formatResponse(req, res, {
                 message: 'Time stopped updated successfully!',
-                watchHistory: result.rows[0],
+                watchHistory: updated,
             }, 200);
         } catch (err) {
             console.error('Error updating watch history record:', err.stack);
@@ -132,24 +88,11 @@ class WatchHistoryService {
 
     async deleteWatchHistoryRecordById(req, res) {
         const { id1, id2 } = req.params;
-
-        if (!id1 || !id2) {
-            return formatResponse(req, res, { message: 'Both profile_id and watchable_id are required.' }, 400);
-        }
-
         try {
-            const deleteQuery = `
-                DELETE FROM "Watch history"
-                WHERE profile_id = $1 AND watchable_id = $2
-                RETURNING profile_id, watchable_id;
-            `;
-
-            const result = await this.db.query(deleteQuery, [id1, id2]);
-
-            if (result.rows.length === 0) {
+            const deleted = await this.repository.deleteWatchHistory(id1, id2);
+            if (!deleted) {
                 return formatResponse(req, res, { message: 'Watch history record not found.' }, 404);
             }
-
             res.status(204).send();
         } catch (err) {
             console.error('Error deleting watch history record:', err.stack);
