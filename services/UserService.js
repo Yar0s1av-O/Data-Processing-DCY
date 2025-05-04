@@ -4,6 +4,8 @@ const js2xmlparser = require("js2xmlparser");
 const jwt = require('jsonwebtoken');
 const Joi = require('joi');
 
+
+// Utility function to format response based on query parameter
 function formatResponse(req, res, data, status = 200) {
     const acceptHeader = req.headers.accept;
     const urlFormat = req.query.format;
@@ -262,10 +264,6 @@ class UserService {
         }
     }
 
-    getRouter() {
-        return this.router;
-    }
-
     async addUserThroughOAuth(profile) {
         try {
             const existingUserResult = await this.db.query('SELECT * FROM "Users" WHERE email = $1', [profile.email]);
@@ -304,6 +302,10 @@ class UserService {
             console.error('Error adding/updating user through OAuth:', error);
             throw error;
         }
+    }
+
+    getRouter() {
+        return this.router;
     }
 }
 

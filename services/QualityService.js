@@ -1,5 +1,7 @@
 const express = require('express');
 const js2xmlparser = require('js2xmlparser');
+const Joi = require("joi");
+
 
 // Utility function to format response based on query parameter
 function formatResponse(req, res, data, status = 200) {
@@ -13,7 +15,7 @@ function formatResponse(req, res, data, status = 200) {
 
 class QualityService {
     constructor(db) {
-        this.db = db; // Database instance
+        this.db = db;
         this.router = express.Router();
         this.initializeRoutes();
     }
@@ -27,11 +29,17 @@ class QualityService {
 
     // CREATE: Insert a new quality record
     async createQuality(req, res) {
-        const { name } = req.body;
 
-        if (!name) {
-            return formatResponse(req, res, { message: 'Name is required.' }, 400);
+        const schema = Joi.object({
+            name: Joi.string().required()
+        });
+
+        const { error} = schema.validate(req.body);
+        if (error) {
+            return formatResponse(req, res, { message: error.details[0].message }, 422);
         }
+
+        const { name } = req.body;
 
         try {
             const result = await this.db.query(

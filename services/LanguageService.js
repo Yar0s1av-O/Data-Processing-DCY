@@ -1,5 +1,7 @@
 const express = require('express');
 const js2xmlparser = require('js2xmlparser');
+const Joi = require('joi');
+
 
 // Utility function to format response based on query parameter
 function formatResponse(req, res, data, status = 200) {
@@ -13,7 +15,7 @@ function formatResponse(req, res, data, status = 200) {
 
 class LanguageService {
     constructor(db) {
-        this.db = db; // Database instance
+        this.db = db;
         this.router = express.Router();
         this.initializeRoutes();
     }
@@ -21,18 +23,23 @@ class LanguageService {
     initializeRoutes() {
         this.router.post('/create', this.createLanguage.bind(this)); // Create a language
         this.router.get('/', this.getAllLanguages.bind(this)); // Get all languages
-        this.router.get('/:language_id', this.getLanguageById.bind(this));
+        this.router.get('/:language_id', this.getLanguageById.bind(this)); // Get language by id
         this.router.put('/:language_id', this.updateLanguageById.bind(this)); // Update language by ID
         this.router.delete('/:language_id', this.deleteLanguageById.bind(this)); // Delete by language_id
     }
 
     // CREATE: Insert a new language record
     async createLanguage(req, res) {
-        const { name } = req.body;
+        const schema = Joi.object({
+            name: Joi.string().required()
+        });
 
-        if (!name) {
-            return formatResponse(req, res, { message: 'Name is required.' }, 400);
+        const {error} = schema.validate(req.body);
+        if (error) {
+            return formatResponse(req, res, {message: error.details[0].message}, 422);
         }
+
+        const {name} = req.body;
 
         try {
             const result = await this.db.query(
@@ -46,7 +53,7 @@ class LanguageService {
             }, 201);
         } catch (err) {
             console.error('Error creating language:', err.stack);
-            formatResponse(req, res, { message: 'Server error', error: err.message }, 500);
+            formatResponse(req, res, {message: 'Server error', error: err.message}, 500);
         }
     }
 
@@ -56,22 +63,22 @@ class LanguageService {
             const result = await this.db.query('SELECT * FROM "Language" ORDER BY language_id ASC');
 
             if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'No languages found.' }, 404);
+                return formatResponse(req, res, {message: 'No languages found.'}, 404);
             }
 
             formatResponse(req, res, result.rows, 200);
         } catch (err) {
             console.error('Error retrieving languages:', err.stack);
-            formatResponse(req, res, { message: 'Failed to retrieve languages', error: err.message }, 500);
+            formatResponse(req, res, {message: 'Failed to retrieve languages', error: err.message}, 500);
         }
     }
 
     // READ: Get a single language by ID
     async getLanguageById(req, res) {
-        const { language_id } = req.params;
+        const {language_id} = req.params;
 
         if (!language_id) {
-            return formatResponse(req, res, { message: 'Language ID is required.' }, 400);
+            return formatResponse(req, res, {message: 'Language ID is required.'}, 400);
         }
 
         try {
@@ -81,23 +88,33 @@ class LanguageService {
             );
 
             if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'Language not found.' }, 404);
+                return formatResponse(req, res, {message: 'Language not found.'}, 404);
             }
 
             formatResponse(req, res, result.rows[0], 200);
         } catch (err) {
             console.error('Error retrieving language by ID:', err.stack);
-            formatResponse(req, res, { message: 'Failed to retrieve language', error: err.message }, 500);
+            formatResponse(req, res, {message: 'Failed to retrieve language', error: err.message}, 500);
         }
     }
 
     // UPDATE: Update language name by ID
     async updateLanguageById(req, res) {
-        const { language_id } = req.params;
-        const { name } = req.body;
 
-        if (!language_id || !name) {
-            return formatResponse(req, res, { message: 'Both language_id and name are required.' }, 400);
+        const schema = Joi.object({
+            name: Joi.string().required()
+        });
+
+        const {error} = schema.validate(req.body);
+        if (error) {
+            return formatResponse(req, res, {message: error.details[0].message}, 422);
+        }
+
+        const {language_id} = req.params;
+        const {name} = req.body;
+
+        if (!language_id) {
+            return formatResponse(req, res, {message: 'language_id is required.'}, 400);
         }
 
         try {
@@ -110,7 +127,7 @@ class LanguageService {
             );
 
             if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'Language not found.' }, 404);
+                return formatResponse(req, res, {message: 'Language not found.'}, 404);
             }
 
             formatResponse(req, res, {
@@ -119,16 +136,16 @@ class LanguageService {
             }, 200);
         } catch (err) {
             console.error('Error updating language:', err.stack);
-            formatResponse(req, res, { message: 'Failed to update language', error: err.message }, 500);
+            formatResponse(req, res, {message: 'Failed to update language', error: err.message}, 500);
         }
     }
 
     // DELETE: Delete language record by language_id
     async deleteLanguageById(req, res) {
-        const { language_id } = req.params;
+        const {language_id} = req.params;
 
         if (!language_id) {
-            return formatResponse(req, res, { message: 'Language ID is required.' }, 400);
+            return formatResponse(req, res, {message: 'Language ID is required.'}, 400);
         }
 
         try {
@@ -138,13 +155,13 @@ class LanguageService {
             );
 
             if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'Language not found.' }, 404);
+                return formatResponse(req, res, {message: 'Language not found.'}, 404);
             }
 
-            formatResponse(req, res, { message: 'Language deleted successfully!' }, 204);
+            formatResponse(req, res, {message: 'Language deleted successfully!'}, 204);
         } catch (err) {
             console.error('Error deleting language:', err.stack);
-            formatResponse(req, res, { message: 'Failed to delete language', error: err.message }, 500);
+            formatResponse(req, res, {message: 'Failed to delete language', error: err.message}, 500);
         }
     }
 

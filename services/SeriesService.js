@@ -1,6 +1,7 @@
 const express = require('express');
 const js2xmlparser = require('js2xmlparser');
 
+
 // Utility function to format response based on query parameter
 function formatResponse(req, res, data, status = 200) {
     const format = req.query.format;
@@ -114,7 +115,7 @@ class SeriesService {
         }
     }
 
-// GET by title and season
+    // GET by title and season
     async getSeriesByTitleAndSeason(req, res) {
         const {title, season} = req.params;
 

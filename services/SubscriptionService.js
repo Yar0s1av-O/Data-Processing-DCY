@@ -1,5 +1,7 @@
 const express = require("express");
 const js2xmlparser = require("js2xmlparser");
+const Joi = require("joi");
+
 
 // Utility function to format response based on query parameter
 function formatResponse(req, res, data, status = 200) {
@@ -19,26 +21,28 @@ class SubscriptionService {
     }
 
     initializeRoutes() {
-        // CREATE: Add a new subscription
         this.router.post("/create", this.createSubscription.bind(this));
-
-        // Pay subscription for a user
         this.router.post("/pay", this.paySubscription.bind(this));
-
-        // READ: Get all subscriptions
         this.router.get("/", this.getAllSubscription.bind(this));
-
-        // READ: Get a specific subscription by ID
         this.router.get("/:id", this.getSubscriptionById.bind(this));
-
-        // UPDATE: Update a subscription
         this.router.put("/:id", this.updateSubscription.bind(this));
-
-        // DELETE: Delete a subscription
         this.router.delete("/:id", this.deleteSubscription.bind(this));
     }
 
     async createSubscription(req, res) {
+        const schema = Joi.object({
+            subscription_type_id: Joi.number().required(),
+            subscription_name: Joi.string().required(),
+            subscription_price_euro: Joi.number().required()
+        });
+
+        const { error } = schema.validate(req.body, { abortEarly: false });
+
+        if (error) {
+            const messages = error.details.map(err => err.message);
+            return formatResponse(req, res, { message: messages }, 422);
+        }
+
         const { subscription_type_id, subscription_name, subscription_price_euro } = req.body;
 
         try {
@@ -57,11 +61,18 @@ class SubscriptionService {
     }
 
     async paySubscription(req, res) {
-        const { userid, subscription_type_id } = req.body;
+        const schema = Joi.object({
+            userid: Joi.number().required(),
+            subscription_type_id: Joi.number().required(),
+        });
 
-        if (!userid || !subscription_type_id) {
-            return formatResponse(req, res, { message: "User ID and Subscription Type ID are required." }, 400);
+        const { error } = schema.validate(req.body, { abortEarly: false });
+
+        if (error) {
+            const messages = error.details.map(err => err.message);
+            return formatResponse(req, res, { message: messages }, 422);
         }
+        const { userid, subscription_type_id } = req.body;
 
         try {
             const result = await this.db.query(
@@ -116,6 +127,18 @@ class SubscriptionService {
     }
 
     async updateSubscription(req, res) {
+        const schema = Joi.object({
+            subscription_name: Joi.string().required(),
+            subscription_price_euro: Joi.number().required(),
+        });
+
+        const { error } = schema.validate(req.body, { abortEarly: false });
+
+        if (error) {
+            const messages = error.details.map(err => err.message);
+            return formatResponse(req, res, { message: messages }, 422);
+        }
+
         const { id } = req.params;
         const { subscription_name, subscription_price_euro } = req.body;
 
@@ -164,7 +187,7 @@ class SubscriptionService {
     }
 
     getRouter() {
-        return this.router; // Expose the router
+        return this.router;
     }
 }
 

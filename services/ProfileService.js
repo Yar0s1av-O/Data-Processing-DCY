@@ -2,6 +2,7 @@ const express = require('express');
 const js2xmlparser = require('js2xmlparser');
 const Joi = require('joi'); // Joi for validation
 
+
 // Utility function to format response based on query parameter
 function formatResponse(req, res, data, status = 200) {
     const format = req.query.format;
@@ -14,7 +15,7 @@ function formatResponse(req, res, data, status = 200) {
 
 class ProfileService {
     constructor(db) {
-        this.db = db; // Database instance
+        this.db = db;
         this.router = express.Router();
         this.profileCreateSchema = Joi.object({
             userid: Joi.number().required(),

@@ -1,5 +1,7 @@
 const express = require('express');
 const js2xmlparser = require('js2xmlparser');
+const Joi = require("joi");
+
 
 // Utility function to format response based on query parameter
 function formatResponse(req, res, data, status = 200) {
@@ -26,6 +28,18 @@ class WatchlistService {
 
     // CREATE: Insert a new watchlist record using stored procedure
     async createWatchlistRecord(req, res) {
+        const schema = Joi.object({
+            profile_id: Joi.number().required(),
+            watchable_id: Joi.number().required(),
+        });
+
+        const { error } = schema.validate(req.body, { abortEarly: false });
+
+        if (error) {
+            const messages = error.details.map(err => err.message);
+            return formatResponse(req, res, { message: messages }, 422);
+        }
+
         const { profile_id, watchable_id } = req.body;
 
         if (!profile_id || !watchable_id) {

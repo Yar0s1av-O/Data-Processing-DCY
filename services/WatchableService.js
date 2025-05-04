@@ -2,6 +2,7 @@ const express = require('express');
 const js2xmlparser = require('js2xmlparser');
 const Joi = require('joi');
 
+
 // Utility function to format response based on query parameter
 function formatResponse(req, res, data, status = 200) {
     const format = req.query.format;
@@ -125,7 +126,7 @@ class WatchableService {
         }
     }
 
-// NEW: Get watchables by title and genre
+    // NEW: Get watchables by title and genre
     async getWatchablesByGenreName(req, res) {
         const { genre_name } = req.params;
 
