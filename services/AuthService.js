@@ -5,9 +5,7 @@ const GoogleStrategy = require('passport-google-oauth2').Strategy;
 const TokenService = require('./TokenService');
 
 
-
-
-
+// Utility function to format response based on query parameter
 class AuthService {
     constructor(app, userService, db, tokenService) {
         this.userService = userService;
@@ -75,11 +73,11 @@ class AuthService {
         app.use(passport.session());
 
         // Auth routes
-        this.router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+        this.router.get('/auth/google', passport.authenticate('google', {scope: ['profile', 'email']}));
 
         this.router.get(
             '/auth/google/callback',
-            passport.authenticate('google', { failureRedirect: '/auth/google/failure' }),
+            passport.authenticate('google', {failureRedirect: '/auth/google/failure'}),
             (req, res) => {
                 res.redirect('/profile');
             }
@@ -103,18 +101,18 @@ class AuthService {
             try {
                 let accessToken = req.user.access_token;
                 const refreshToken = req.user.refresh_token;
-        
+
                 if (!accessToken && refreshToken) {
                     // Use the tokenService that was injected
                     accessToken = await this.tokenService.refreshAccessToken(refreshToken);
-        
+
                     // Update the user's access token in the database
                     await this.db.query(
                         `UPDATE "Users" SET access_token = $1 WHERE user_id = $2`,
                         [accessToken, req.user.user_id]
                     );
                 }
-        
+
                 res.status(200).json({
                     message: `Welcome back, ${req.user.name || req.user.email.split('@')[0]}!`,
                     user: {
@@ -127,7 +125,7 @@ class AuthService {
                 });
             } catch (err) {
                 console.error('Error refreshing token:', err.stack);
-                res.status(500).json({ message: 'Server error' });
+                res.status(500).json({message: 'Server error'});
             }
         });
 
@@ -146,7 +144,7 @@ class AuthService {
         if (req.isAuthenticated()) {
             return next();
         }
-        res.status(401).json({ message: 'Unauthorized' });
+        res.status(401).json({message: 'Unauthorized'});
     }
 }
 

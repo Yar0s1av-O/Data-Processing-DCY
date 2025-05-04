@@ -1,5 +1,7 @@
 const express = require('express');
 const js2xmlparser = require('js2xmlparser');
+const Joi = require("joi");
+
 
 // Utility function to format response based on query parameter
 function formatResponse(req, res, data, status = 200) {
@@ -26,11 +28,18 @@ class PreferenceService {
 
     // CREATE: Insert a new preference record using stored procedure
     async createPreferenceRecord(req, res) {
-        const { profile_id, genre_id } = req.body;
 
-        if (!profile_id || !genre_id) {
-            return formatResponse(req, res, { message: 'Missing required fields.' }, 400);
+        const schema = Joi.object({
+            profile_id: Joi.number().required(),
+            genre_id: Joi.number().required()
+        });
+
+        const { error, value } = schema.validate(req.body);
+        if (error) {
+            return formatResponse(req, res, { message: error.details[0].message }, 400);
         }
+
+        const { profile_id, genre_id } = req.body;
 
         try {
             await this.db.query(

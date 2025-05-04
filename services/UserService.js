@@ -2,10 +2,19 @@ require('dotenv').config();
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const Joi = require('joi');
 
-const { validateLogin, validateRegistration, validateInvite, validateUserUpdate } = require('../validators/userValidators');
-const { formatResponse } = require('../utils/formatResponse');
-const UserRepository = require('../repositories/UserRepository');
+function formatResponse(req, res, data, status = 200) {
+    const acceptHeader = req.headers.accept;
+    const urlFormat = req.query.format;
+
+    if ((urlFormat && urlFormat.toLowerCase() === 'xml') ||
+        (acceptHeader && acceptHeader.includes("application/xml"))) {
+        res.status(status).set("Content-Type", "application/xml").send(js2xmlparser.parse("response", data));
+    } else {
+        res.status(status).set("Content-Type", "application/json").json(data);
+    }
+}
 
 class UserService {
   constructor(db) {
@@ -183,29 +192,89 @@ class UserService {
     }
   }
 
-  async getUserById(req, res) {
-    try {
-      const user = await this.userRepo.getUserById(req.params.id);
-      if (!user) return formatResponse(req, res, { message: 'User not found.' }, 404);
-      return formatResponse(req, res, user, 200);
-    } catch (err) {
-      console.error('Get user by ID error:', err);
-      return formatResponse(req, res, { message: 'Internal server error' }, 500);
+    async getUserById(req, res) {
+        const { id } = req.params;
+        try {
+            const result = await this.db.query('SELECT * FROM "Users" WHERE user_id = $1', [id]);
+            if (result.rows.length === 0) {
+                return formatResponse(req, res, { message: 'User not found.' }, 404);
+            }
+            return formatResponse(req, res, result.rows[0], 200);
+        } catch (err) {
+            console.error('Fetch user by id error:', err.stack);
+            return formatResponse(req, res, { message: 'Internal server error' }, 500);
+        }
     }
-  }
 
-  getRouter() {
-    return this.router;
-  }
+    async deleteUser(req, res) {
+        const { id } = req.params;
+        const client = await this.db.pool.connect();
 
-  async addUserThroughOAuth(profile) {
-    try {
-      return await this.userRepo.upsertOAuthUser(profile);
-    } catch (err) {
-      console.error('OAuth error:', err);
-      throw err;
+        try {
+            await client.query('BEGIN');
+            await client.query('DELETE FROM "Profiles" WHERE user_id = $1', [id]);
+            const result = await client.query('DELETE FROM "Users" WHERE user_id = $1 RETURNING user_id', [id]);
+
+            if (result.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return formatResponse(req, res, { message: 'User not found.' }, 404);
+            }
+
+            await client.query('COMMIT');
+            res.status(204).send();
+
+        } catch (err) {
+            console.error('Delete user error:', err.stack);
+            await client.query('ROLLBACK');
+            return formatResponse(req, res, { message: 'Internal server error' }, 500);
+        } finally {
+            client.release();
+        }
     }
-  }
+
+    getRouter() {
+        return this.router;
+    }
+
+    async addUserThroughOAuth(profile) {
+        try {
+            const existingUserResult = await this.db.query('SELECT * FROM "Users" WHERE email = $1', [profile.email]);
+            if (existingUserResult.rows.length > 0) {
+                const existingUser = existingUserResult.rows[0];
+                if (!existingUser.name || !existingUser.profile_picture) {
+                    const updatedUser = await this.db.query(
+                        `UPDATE "Users"
+                         SET name = COALESCE($1, name),
+                             profile_picture = COALESCE($2, profile_picture)
+                         WHERE email = $3
+                         RETURNING *`,
+                        [
+                            profile.displayName || profile.given_name || 'Unknown',
+                            profile.picture || null,
+                            profile.email
+                        ]
+                    );
+                    return updatedUser.rows[0];
+                }
+                return existingUser;
+            }
+
+            const newUser = await this.db.query(
+                `INSERT INTO "Users" (email, name, profile_picture)
+                 VALUES ($1, $2, $3)
+                 RETURNING *`,
+                [
+                    profile.email,
+                    profile.displayName || profile.given_name || 'Unknown',
+                    profile.picture || null
+                ]
+            );
+            return newUser.rows[0];
+        } catch (error) {
+            console.error('Error adding/updating user through OAuth:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = UserService;

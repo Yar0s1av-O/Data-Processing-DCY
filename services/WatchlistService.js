@@ -1,6 +1,5 @@
 const express = require('express');
 const js2xmlparser = require('js2xmlparser');
-const Joi = require('joi');
 
 // Utility function
 function formatResponse(req, res, data, status = 200) {
@@ -34,14 +33,6 @@ class WatchlistService {
 
     // POST /watchlist/create
     async createWatchlistRecord(req, res) {
-        const { error } = this.watchlistCreateSchema.validate(req.body);
-        if (error) {
-            return formatResponse(req, res, {
-                message: 'Validation failed',
-                details: error.details.map(d => d.message)
-            }, 422);
-        }
-
         const { profile_id, watchable_id } = req.body;
 
         try {

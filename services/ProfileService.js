@@ -2,6 +2,7 @@ const express = require('express');
 const js2xmlparser = require('js2xmlparser');
 const Joi = require('joi'); // Joi for validation
 
+
 // Utility function to format response based on query parameter
 function formatResponse(req, res, data, status = 200) {
     const format = req.query.format;
@@ -14,7 +15,7 @@ function formatResponse(req, res, data, status = 200) {
 
 class ProfileService {
     constructor(db) {
-        this.db = db; // Database instance
+        this.db = db;
         this.router = express.Router();
         this.profileCreateSchema = Joi.object({
             userid: Joi.number().required(),
@@ -35,6 +36,7 @@ class ProfileService {
     initializeRoutes() {
         this.router.post('/create', this.createProfile.bind(this));
         this.router.get('/', this.getAllProfiles.bind(this));
+        this.router.get('/user/:user_id', this.getProfilesByUserId.bind(this));
         this.router.get('/:id', this.getProfileById.bind(this));
         this.router.put('/:id', this.updateProfile.bind(this));
         this.router.delete('/:id', this.deleteProfile.bind(this));
@@ -135,6 +137,31 @@ class ProfileService {
             formatResponse(req, res, { message: 'Failed to update profile', error: err.message }, 500);
         }
     }
+
+    async getProfilesByUserId(req, res) {
+        const { user_id } = req.params;
+
+        if (!user_id) {
+            return formatResponse(req, res, { message: 'User ID is required.' }, 400);
+        }
+
+        try {
+            const result = await this.db.query(
+                `SELECT * FROM "Profiles" WHERE user_id = $1`,
+                [user_id]
+            );
+
+            if (result.rows.length === 0) {
+                return formatResponse(req, res, { message: 'No profiles found for this user.' }, 404);
+            }
+
+            formatResponse(req, res, result.rows, 200);
+        } catch (err) {
+            console.error('Error retrieving profiles by user ID:', err.stack);
+            formatResponse(req, res, { message: 'Failed to retrieve profiles', error: err.message }, 500);
+        }
+    }
+
 
     async deleteProfile(req, res) {
         const { id } = req.params;

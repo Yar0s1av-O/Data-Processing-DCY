@@ -1,5 +1,7 @@
 const express = require('express');
 const js2xmlparser = require('js2xmlparser');
+const Joi = require("joi");
+
 
 // Utility function to format response
 function formatResponse(req, res, data, status = 200) {
@@ -27,11 +29,21 @@ class SubtitleService {
 
     // CREATE: Insert a new subtitle record
     async createSubtitle(req, res) {
-        const { language_id, watchable_id, link } = req.body;
 
-        if (!language_id || !watchable_id || !link) {
-            return formatResponse(req, res, { message: 'Missing required fields.' }, 400);
+        const schema = Joi.object({
+            language_id: Joi.number().required(),
+            watchable_id: Joi.number().required(),
+            link: Joi.string().required()
+        });
+
+        const { error } = schema.validate(req.body, { abortEarly: false });
+
+        if (error) {
+            const messages = error.details.map(err => err.message);
+            return formatResponse(req, res, { message: messages }, 422);
         }
+
+        const { language_id, watchable_id, link } = req.body;
 
         try {
             await this.db.query(
@@ -75,11 +87,22 @@ class SubtitleService {
 
     // UPDATE: Update subtitle link by watchable_id and language_id
     async updateSubtitleLink(req, res) {
+        const schema = Joi.object({
+            link: Joi.string().required()
+        });
+
+        const { error } = schema.validate(req.body, { abortEarly: false });
+
+        if (error) {
+            const messages = error.details.map(err => err.message);
+            return formatResponse(req, res, { message: messages }, 422);
+        }
+
         const { watchable_id, language_id } = req.params;
         const { link } = req.body;
 
-        if (!watchable_id || !language_id || !link) {
-            return formatResponse(req, res, { message: 'watchable_id, language_id, and new link are required.' }, 400);
+        if (!watchable_id || !language_id) {
+            return formatResponse(req, res, { message: 'watchable_id, language_id are required.' }, 400);
         }
 
         try {
