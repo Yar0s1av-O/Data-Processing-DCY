@@ -1,195 +1,116 @@
+// services/ProfileService.js
 const express = require('express');
 const js2xmlparser = require('js2xmlparser');
-const Joi = require('joi'); // Joi for validation
+const { validateProfileCreate, validateProfileUpdate } = require('../validators/ProfileValidator');
+const ProfileRepository = require('../repositories/ProfileRepository');
+const Joi = require('joi');
 
 
-// Utility function to format response based on query parameter
 function formatResponse(req, res, data, status = 200) {
-    const format = req.query.format;
-    if (format === 'xml') {
-        res.status(status).set('Content-Type', 'application/xml').send(js2xmlparser.parse('response', data));
-    } else {
-        res.status(status).json(data);
-    }
+  const format = req.query.format;
+  if (format === 'xml') {
+    res.status(status).set('Content-Type', 'application/xml').send(js2xmlparser.parse('response', data));
+  } else {
+    res.status(status).json(data);
+  }
 }
 
 class ProfileService {
-    constructor(db) {
-        this.db = db;
-        this.router = express.Router();
-        this.profileCreateSchema = Joi.object({
-            userid: Joi.number().required(),
-            profile_name: Joi.string().min(2).max(100).required(),
-            profile_photo_link: Joi.string().uri().max(300).required(),
-            age: Joi.number().integer().min(0).required(),
-            language_id: Joi.number().required(),
-        });
-        this.profileUpdateSchema = Joi.object({
-            profile_photo_link: Joi.string().uri().max(300).optional(),
-            age: Joi.number().integer().min(0).optional(),
-            language_id: Joi.number().optional(),
-            profile_name: Joi.string().min(2).max(100).optional(),
-        });
-        this.initializeRoutes();
+  constructor(db) {
+    this.db = db;
+    this.repo = new ProfileRepository(db);
+    this.router = express.Router();
+    this.initializeRoutes();
+  }
+
+  initializeRoutes() {
+    this.router.post('/create', this.createProfile.bind(this));
+    this.router.get('/', this.getAllProfiles.bind(this));
+    this.router.get('/:id', this.getProfileById.bind(this));
+    this.router.get('/user/:user_id', this.getProfilesByUserId.bind(this));
+    this.router.put('/:id', this.updateProfile.bind(this));
+    this.router.delete('/:id', this.deleteProfile.bind(this));
+  }
+
+  async createProfile(req, res) {
+    const { error } = validateProfileCreate(req.body);
+    if (error) {
+      return formatResponse(req, res, { message: 'Validation failed', details: error.details }, 422);
     }
-
-    initializeRoutes() {
-        this.router.post('/create', this.createProfile.bind(this));
-        this.router.get('/', this.getAllProfiles.bind(this));
-        this.router.get('/user/:user_id', this.getProfilesByUserId.bind(this));
-        this.router.get('/:id', this.getProfileById.bind(this));
-        this.router.put('/:id', this.updateProfile.bind(this));
-        this.router.delete('/:id', this.deleteProfile.bind(this));
+    try {
+      await this.repo.createProfile(req.body);
+      formatResponse(req, res, { message: 'Profile created successfully!' }, 201);
+    } catch (err) {
+      console.error('Create profile error:', err);
+      formatResponse(req, res, { message: 'Internal server error' }, 500);
     }
+  }
 
-    async createProfile(req, res) {
-        const { error } = this.profileCreateSchema.validate(req.body);
-        if (error) {
-            return formatResponse(req, res, { message: 'Validation failed', details: error.details }, 422);
-        }
-
-        const { userid, profile_name, profile_photo_link, age, language_id } = req.body;
-
-        try {
-            await this.db.query(
-                'CALL sp_insert_into_profiles($1, $2, $3, $4, $5)',
-                [userid, profile_name, profile_photo_link, age, language_id]
-            );
-
-            formatResponse(req, res, { message: 'Profile created successfully!' }, 201);
-        } catch (err) {
-            console.error('Error during profile creation:', err.stack);
-            formatResponse(req, res, { message: 'Internal server error', error: err.message }, 500);
-        }
+  async getAllProfiles(req, res) {
+    try {
+      const profiles = await this.repo.getAllProfiles();
+      formatResponse(req, res, profiles, 200);
+    } catch (err) {
+      console.error('Get all profiles error:', err);
+      formatResponse(req, res, { message: 'Internal server error' }, 500);
     }
+  }
 
-    async getAllProfiles(req, res) {
-        try {
-            const result = await this.db.query('SELECT * FROM "Profiles"');
-            formatResponse(req, res, result.rows, 200);
-        } catch (err) {
-            console.error('Error retrieving profiles:', err.stack);
-            formatResponse(req, res, { message: 'Failed to retrieve profiles', error: err.message }, 500);
-        }
+  async getProfileById(req, res) {
+    const { id } = req.params;
+    try {
+      const profile = await this.repo.getProfileById(id);
+      if (!profile) return formatResponse(req, res, { message: 'Profile not found.' }, 404);
+      formatResponse(req, res, profile, 200);
+    } catch (err) {
+      console.error('Get profile by ID error:', err);
+      formatResponse(req, res, { message: 'Internal server error' }, 500);
     }
+  }
 
-    async getProfileById(req, res) {
-        const { id } = req.params;
-
-        if (!id) {
-            return formatResponse(req, res, { message: 'Profile ID is required.' }, 400);
-        }
-
-        try {
-            const result = await this.db.query('SELECT * FROM "Profiles" WHERE profile_id = $1', [id]);
-            if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'Profile not found.' }, 404);
-            }
-            formatResponse(req, res, result.rows[0], 200);
-        } catch (err) {
-            console.error('Error retrieving profile:', err.stack);
-            formatResponse(req, res, { message: 'Failed to retrieve profile', error: err.message }, 500);
-        }
+  async getProfilesByUserId(req, res) {
+    const { user_id } = req.params;
+    try {
+      const profiles = await this.repo.getProfilesByUserId(user_id);
+      if (!profiles.length) return formatResponse(req, res, { message: 'No profiles found for this user.' }, 404);
+      formatResponse(req, res, profiles, 200);
+    } catch (err) {
+      console.error('Get profiles by user ID error:', err);
+      formatResponse(req, res, { message: 'Internal server error' }, 500);
     }
+  }
 
-    async updateProfile(req, res) {
-        const { id } = req.params;
-
-        const { error } = this.profileUpdateSchema.validate(req.body);
-        if (error) {
-            return formatResponse(req, res, { message: 'Validation failed', details: error.details }, 422);
-        }
-
-        const { profile_photo_link, age, language_id, profile_name } = req.body;
-
-        if (!id) {
-            return formatResponse(req, res, { message: 'Profile ID is required.' }, 400);
-        }
-
-        try {
-            const updateQuery = `
-                UPDATE "Profiles"
-                SET profile_photo_link = COALESCE($1, profile_photo_link),
-                    age = COALESCE($2, age),
-                    language_id = COALESCE($3, language_id),
-                    profile_name = COALESCE($4, profile_name)
-                WHERE profile_id = $5
-                RETURNING profile_id, profile_photo_link, age, language_id, profile_name`;
-
-            const result = await this.db.query(updateQuery, [
-                profile_photo_link,
-                age,
-                language_id,
-                profile_name,
-                id
-            ]);
-
-            if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'Profile not found.' }, 404);
-            }
-
-            formatResponse(req, res, {
-                message: 'Profile updated successfully!',
-                profile: result.rows[0],
-            }, 200);
-        } catch (err) {
-            console.error('Error updating profile:', err.stack);
-            formatResponse(req, res, { message: 'Failed to update profile', error: err.message }, 500);
-        }
+  async updateProfile(req, res) {
+    const { id } = req.params;
+    const { error } = validateProfileUpdate(req.body);
+    if (error) {
+      return formatResponse(req, res, { message: 'Validation failed', details: error.details }, 422);
     }
-
-    async getProfilesByUserId(req, res) {
-        const { user_id } = req.params;
-
-        if (!user_id) {
-            return formatResponse(req, res, { message: 'User ID is required.' }, 400);
-        }
-
-        try {
-            const result = await this.db.query(
-                `SELECT * FROM "Profiles" WHERE user_id = $1`,
-                [user_id]
-            );
-
-            if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'No profiles found for this user.' }, 404);
-            }
-
-            formatResponse(req, res, result.rows, 200);
-        } catch (err) {
-            console.error('Error retrieving profiles by user ID:', err.stack);
-            formatResponse(req, res, { message: 'Failed to retrieve profiles', error: err.message }, 500);
-        }
+    try {
+      const updated = await this.repo.updateProfile(id, req.body);
+      if (!updated) return formatResponse(req, res, { message: 'Profile not found.' }, 404);
+      formatResponse(req, res, { message: 'Profile updated successfully!', profile: updated }, 200);
+    } catch (err) {
+      console.error('Update profile error:', err);
+      formatResponse(req, res, { message: 'Internal server error' }, 500);
     }
+  }
 
-
-    async deleteProfile(req, res) {
-        const { id } = req.params;
-
-        if (!id) {
-            return formatResponse(req, res, { message: 'Profile ID is required.' }, 400);
-        }
-
-        try {
-            const result = await this.db.query(
-                'DELETE FROM "Profiles" WHERE profile_id = $1 RETURNING profile_id',
-                [id]
-            );
-
-            if (result.rows.length === 0) {
-                return formatResponse(req, res, { message: 'Profile not found.' }, 404);
-            }
-
-            res.status(204).send();
-        } catch (err) {
-            console.error('Error deleting profile:', err.stack);
-            formatResponse(req, res, { message: 'Failed to delete profile', error: err.message }, 500);
-        }
+  async deleteProfile(req, res) {
+    const { id } = req.params;
+    try {
+      const deleted = await this.repo.deleteProfile(id);
+      if (!deleted) return formatResponse(req, res, { message: 'Profile not found.' }, 404);
+      res.status(204).send();
+    } catch (err) {
+      console.error('Delete profile error:', err);
+      formatResponse(req, res, { message: 'Internal server error' }, 500);
     }
+  }
 
-    getRouter() {
-        return this.router;
-    }
+  getRouter() {
+    return this.router;
+  }
 }
 
 module.exports = ProfileService;
