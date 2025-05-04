@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Joi = require('joi');
 const UserRepository = require('../repositories/UserRepository');
-const { validateRegistration, validateLogin } = require('../validators/UserValidator');
+const { validateRegistration, validateLogin, validateInvite, validateUserUpdate } = require('../validators/UserValidator');
 
 function formatResponse(req, res, data, status = 200) {
     const acceptHeader = req.headers.accept;

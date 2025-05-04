@@ -22,7 +22,7 @@ CREATE OR REPLACE PROCEDURE SP_insert_into_profiles(
     _age SMALLINT,
     _language_id INTEGER
 )
-LANGUAGE 'plpgsql' AS $$
+LANGUAGE 'plpgsql' AS $BODY$;
 BEGIN
     -- Insert the new profile
     INSERT INTO public."Profiles" 
@@ -30,7 +30,6 @@ BEGIN
     VALUES
     (_user_id, _profile_name, _profile_photo_link, _age, _language_id);
 END;
-$$;
 $BODY$;
 ALTER PROCEDURE public.sp_insert_into_profiles(text, integer, text, text, integer, integer)
     OWNER TO postgres;
