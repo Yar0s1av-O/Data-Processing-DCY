@@ -8,75 +8,18 @@ servers:
     description: Local server
 
 paths:
-  /users/register:
-    post:
-      summary: Register a new user
-      description: Creates a new user account.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                email:
-                  type: string
-                  example: "user@example.com"
-                password:
-                  type: string
-                  example: "securepassword"
-      responses:
-        '201':
-          description: User registered successfully.
-        '400':
-          description: Invalid input.
-
-  /users/login:
-    post:
-      summary: Log in a user
-      description: Authenticates a user and returns a JWT token.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                email:
-                  type: string
-                  example: "user@example.com"
-                password:
-                  type: string
-                  example: "securepassword"
-      responses:
-        '200':
-          description: Login successful.
-        '404':
-          description: Invalid email or password.
-
   /users:
     get:
       summary: Get all users
-      description: Fetches all users.
+      description: Fetch all user accounts.
       responses:
         '200':
-          description: List of users.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    user_id:
-                      type: integer
-                    email:
-                      type: string
+          description: List of users
 
   /users/{id}:
     get:
       summary: Get user by ID
-      description: Fetches details of a specific user.
+      description: Fetch details of a user by ID.
       parameters:
         - name: id
           in: path
@@ -85,12 +28,13 @@ paths:
             type: integer
       responses:
         '200':
-          description: User details fetched successfully.
+          description: User found
         '404':
-          description: User not found.
+          description: User not found
+
     put:
-      summary: Update user by ID
-      description: Updates user details.
+      summary: Update a user by ID
+      description: Update user email or password.
       parameters:
         - name: id
           in: path
@@ -110,12 +54,13 @@ paths:
                   type: string
       responses:
         '200':
-          description: User updated successfully.
+          description: User updated
         '404':
-          description: User not found.
+          description: User not found
+
     delete:
-      summary: Delete user by ID
-      description: Deletes a user.
+      summary: Delete a user by ID
+      description: Deletes a user and their profile.
       parameters:
         - name: id
           in: path
@@ -123,23 +68,136 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: User deleted successfully.
+        '204':
+          description: User deleted successfully
         '404':
-          description: User not found.
+          description: User not found
+
+  /users/register:
+    post:
+      summary: Register a user
+      description: Create a new user account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: User registered
+        '409':
+          description: Email already registered
+
+  /users/login:
+    post:
+      summary: Login user
+      description: Authenticate user with email and password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+        '401':
+          description: Invalid email or password
+
+  /users/login/oauth:
+    post:
+      summary: Login user through OAuth
+      description: Log user in using OAuth with email only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: OAuth login successful
+        '404':
+          description: User not found
+
+  /users/invite:
+    post:
+      summary: Invite user
+      description: Invite a user by email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+      responses:
+        '201':
+          description: Invitation sent
+        '409':
+          description: Already invited
+        /profiles/create:
+    post:
+      summary: Create a new profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: integer
+                profile_name:
+                  type: string
+                profile_photo_link:
+                  type: string
+                age:
+                  type: integer
+                language_id:
+                  type: integer
+      responses:
+        '201':
+          description: Profile created successfully
+        '422':
+          description: Validation failed
 
   /profiles:
     get:
       summary: Get all profiles
-      description: Fetches all profiles.
       responses:
         '200':
-          description: List of profiles.
+          description: List of profiles
 
   /profiles/{id}:
     get:
       summary: Get profile by ID
-      description: Fetches details of a specific profile.
       parameters:
         - name: id
           in: path
@@ -148,14 +206,196 @@ paths:
             type: integer
       responses:
         '200':
-          description: Profile details fetched successfully.
+          description: Profile data
         '404':
-          description: Profile not found.
+          description: Profile not found
     put:
-      summary: Update profile by ID
-      description: Updates profile details.
+      summary: Update a profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile_name:
+                  type: string
+                profile_photo_link:
+                  type: string
+                age:
+                  type: integer
+                language_id:
+                  type: integer
       parameters:
         - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Profile updated successfully
+        '404':
+          description: Profile not found
+    delete:
+      summary: Delete a profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Profile deleted successfully
+        '404':
+          description: Profile not found
+
+  /profiles/user/{user_id}:
+    get:
+      summary: Get profiles by user ID
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of profiles for the user
+        '404':
+          description: No profiles found
+
+  /watchlist/create:
+    post:
+      summary: Add a watchable item to the watchlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile_id:
+                  type: integer
+                  example: 1
+                watchable_id:
+                  type: integer
+                  example: 42
+      responses:
+        '201':
+          description: Watchlist record created successfully.
+        '422':
+          description: Validation failed.
+        '500':
+          description: Server error.
+
+  /watchlist/{id}:
+    get:
+      summary: Get all watchlist records for a profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of watchlist records.
+        '404':
+          description: No watchlist records found for this profile.
+        '422':
+          description: Invalid profile ID.
+        '500':
+          description: Server error.
+
+  /watchlist/{id1}/{id2}:
+    delete:
+      summary: Delete a watchlist record by profile_id and watchable_id
+      parameters:
+        - name: id1
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id2
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Watchlist record deleted successfully.
+        '404':
+          description: Watchlist record not found.
+        '422':
+          description: Validation failed.
+        '500':
+          description: Server error.
+  /watch-history/create:
+    post:
+      summary: Create a watch history record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile_id:
+                  type: integer
+                  example: 1
+                watchable_id:
+                  type: integer
+                  example: 42
+                time_stopped:
+                  type: string
+                  format: time
+                  example: "01:32:15"
+      responses:
+        '201':
+          description: Watch history record created successfully.
+        '422':
+          description: Validation failed.
+        '500':
+          description: Internal server error.
+
+  /watch-history:
+    get:
+      summary: Get all watch history records
+      responses:
+        '200':
+          description: List of watch history records.
+        '500':
+          description: Failed to retrieve watch history records.
+
+  /watch-history/{id}:
+    get:
+      summary: Get watch history records by profile ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Watch history record found.
+        '404':
+          description: Watch history record not found.
+        '500':
+          description: Failed to retrieve watch history record.
+
+  /watch-history/{id1}/{id2}:
+    put:
+      summary: Update watch history record by profile and watchable ID
+      parameters:
+        - name: id1
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id2
           in: path
           required: true
           schema:
@@ -167,44 +407,202 @@ paths:
             schema:
               type: object
               properties:
-                profile_photo_link:
+                time_stopped:
                   type: string
-                age:
-                  type: integer
-                language:
-                  type: string
+                  format: time
+                  example: "00:45:00"
       responses:
         '200':
-          description: Profile updated successfully.
+          description: Time stopped updated successfully.
         '404':
-          description: Profile not found.
+          description: Watch history record not found.
+        '422':
+          description: Validation failed.
+        '500':
+          description: Failed to update watch history.
+
     delete:
-      summary: Delete profile by ID
-      description: Deletes a profile.
+      summary: Delete watch history record by profile and watchable ID
       parameters:
-        - name: id
+        - name: id1
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id2
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Watch history record deleted successfully.
+        '404':
+          description: Watch history record not found.
+        '500':
+          description: Failed to delete watch history record.
+  /subtitles/create:
+    post:
+      summary: Create a new subtitle record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                language_id:
+                  type: integer
+                  example: 1
+                watchable_id:
+                  type: integer
+                  example: 101
+                link:
+                  type: string
+                  example: "http://example.com/subtitle.vtt"
+      responses:
+        '201':
+          description: Subtitle record created successfully.
+        '422':
+          description: Validation failed.
+        '500':
+          description: Server error.
+
+  /subtitles/{watchable_id}:
+    get:
+      summary: Get subtitles by watchable ID
+      parameters:
+        - name: watchable_id
           in: path
           required: true
           schema:
             type: integer
       responses:
         '200':
-          description: Profile deleted successfully.
+          description: List of subtitles.
         '404':
-          description: Profile not found.
+          description: No subtitles found for this watchable.
+        '500':
+          description: Failed to retrieve subtitles.
+
+  /subtitles/{watchable_id}/{language_id}:
+    put:
+      summary: Update subtitle link
+      parameters:
+        - name: watchable_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: language_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                link:
+                  type: string
+                  example: "http://example.com/updated-subtitle.vtt"
+      responses:
+        '200':
+          description: Subtitle link updated successfully.
+        '404':
+          description: Subtitle not found.
+        '422':
+          description: Validation failed.
+        '500':
+          description: Failed to update subtitle.
+
+    delete:
+      summary: Delete subtitle
+      parameters:
+        - name: watchable_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: language_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Subtitle deleted successfully.
+        '404':
+          description: Subtitle not found.
+        '500':
+          description: Failed to delete subtitle.
+  /subscriptions/create:
+    post:
+      summary: Create a new subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subscription_name:
+                  type: string
+                  example: Premium
+                subscription_price_euro:
+                  type: number
+                  example: 9.99
+      responses:
+        '201':
+          description: Subscription created successfully.
+        '422':
+          description: Validation failed.
+        '500':
+          description: Server error.
+
+  /subscriptions/pay:
+    post:
+      summary: Pay for a subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userid:
+                  type: integer
+                  example: 123
+                subscription_type_id:
+                  type: integer
+                  example: 1
+      responses:
+        '200':
+          description: Subscription payment processed successfully.
+        '403':
+          description: Subscription is still active.
+        '404':
+          description: User not found.
+        '422':
+          description: Invalid subscription type.
+        '500':
+          description: Server error.
 
   /subscriptions:
     get:
       summary: Get all subscriptions
-      description: Fetches all subscriptions.
       responses:
         '200':
           description: List of subscriptions.
+        '500':
+          description: Failed to retrieve subscriptions.
 
   /subscriptions/{id}:
     get:
       summary: Get subscription by ID
-      description: Fetches details of a specific subscription.
       parameters:
         - name: id
           in: path
@@ -216,9 +614,11 @@ paths:
           description: Subscription details fetched successfully.
         '404':
           description: Subscription not found.
+        '500':
+          description: Failed to retrieve subscription.
+
     put:
       summary: Update subscription by ID
-      description: Updates subscription details.
       parameters:
         - name: id
           in: path
@@ -234,16 +634,22 @@ paths:
               properties:
                 subscription_name:
                   type: string
+                  example: Updated Plan
                 subscription_price_euro:
                   type: number
+                  example: 14.99
       responses:
         '200':
           description: Subscription updated successfully.
         '404':
           description: Subscription not found.
+        '422':
+          description: Validation failed.
+        '500':
+          description: Failed to update subscription.
+
     delete:
       summary: Delete subscription by ID
-      description: Deletes a subscription.
       parameters:
         - name: id
           in: path
@@ -255,74 +661,423 @@ paths:
           description: Subscription deleted successfully.
         '404':
           description: Subscription not found.
-
-  /exports/users:
+        '500':
+          description: Failed to delete subscription.
+  /series:
     get:
-      summary: Export all users
-      description: Exports all user data.
+      summary: Get all series
+      responses:
+        '200':
+          description: List of all series.
+        '500':
+          description: Failed to retrieve series.
+
+  /series/{id}:
+    get:
+      summary: Get series by ID
       parameters:
-        - name: format
-          in: query
-          required: false
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Series details.
+        '400':
+          description: Series ID is required.
+        '404':
+          description: Series not found.
+        '500':
+          description: Failed to retrieve series.
+
+  /series/genre/{genre_name}:
+    get:
+      summary: Get series by genre name
+      parameters:
+        - name: genre_name
+          in: path
+          required: true
           schema:
             type: string
-            enum: [json, xml]
       responses:
         '200':
-          description: Export successful.
+          description: Series list by genre.
+        '400':
+          description: Genre name is required.
+        '404':
+          description: No series found for this genre.
+        '500':
+          description: Failed to retrieve series.
 
-  /exports/profiles:
+  /series/title/{title}:
     get:
-      summary: Export all profiles
-      description: Exports all profile data.
+      summary: Get series by title
       parameters:
-        - name: format
-          in: query
-          required: false
+        - name: title
+          in: path
+          required: true
           schema:
             type: string
-            enum: [json, xml]
       responses:
         '200':
-          description: Export successful.
+          description: Series list by title.
+        '400':
+          description: Title is required.
+        '404':
+          description: No series found for this title.
+        '500':
+          description: Failed to retrieve series.
 
-  /exports/subscriptions:
+  /series/title/{title}/season/{season}:
     get:
-      summary: Export all subscriptions
-      description: Exports all subscription data.
+      summary: Get series by title and season
       parameters:
-        - name: format
-          in: query
-          required: false
+        - name: title
+          in: path
+          required: true
           schema:
             type: string
-            enum: [json, xml]
+        - name: season
+          in: path
+          required: true
+          schema:
+            type: integer
       responses:
         '200':
-          description: Export successful.
+          description: Series by title and season.
+        '400':
+          description: Title and season required.
+        '404':
+          description: No series found with this title and season.
+        '500':
+          description: Failed to retrieve series.
 
-  /auth/google:
+  /series/profile/{profile_id}:
     get:
-      summary: Google OAuth login
-      description: Initiates Google authentication.
-      responses:
-        '302':
-          description: Redirect to Google OAuth.
-
-  /auth/google/callback:
-    get:
-      summary: Google OAuth callback
-      description: Callback URL after Google authentication.
-      responses:
-        '200':
-          description: Authentication successful.
-        '401':
-          description: Authentication failed.
-
-  /logout:
-    get:
-      summary: Log out user
-      description: Logs out the authenticated user.
+      summary: Get preferred series by profile
+      parameters:
+        - name: profile_id
+          in: path
+          required: true
+          schema:
+            type: integer
       responses:
         '200':
-          description: Logout successful.
+          description: List of preferred series for this profile.
+        '400':
+          description: Profile ID is required.
+        '404':
+          description: No preferred series found.
+        '500':
+          description: Failed to retrieve preferred series.
+  /qualities/create:
+    post:
+      summary: Create a new quality
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: HD
+      responses:
+        '201':
+          description: Quality created successfully.
+        '422':
+          description: Validation failed.
+        '500':
+          description: Server error.
+
+  /qualities:
+    get:
+      summary: Get all qualities
+      responses:
+        '200':
+          description: List of all qualities.
+        '404':
+          description: No qualities found.
+        '500':
+          description: Failed to retrieve qualities.
+
+  /qualities/{quality_id}:
+    put:
+      summary: Update quality by ID
+      parameters:
+        - name: quality_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Full HD
+      responses:
+        '200':
+          description: Quality updated successfully.
+        '404':
+          description: Quality not found.
+        '422':
+          description: Validation failed.
+        '500':
+          description: Failed to update quality.
+
+    delete:
+      summary: Delete quality by ID
+      parameters:
+        - name: quality_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Quality deleted successfully.
+        '404':
+          description: Quality not found.
+        '500':
+          description: Failed to delete quality.
+  /preferences/create:
+    post:
+      summary: Create a new preference
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile_id:
+                  type: integer
+                genre_id:
+                  type: integer
+      responses:
+        '201':
+          description: Preference record created successfully.
+        '400':
+          description: Validation failed.
+        '500':
+          description: Server error.
+
+  /preferences/{profile_id}:
+    get:
+      summary: Get preferences by profile ID
+      parameters:
+        - name: profile_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Preferences retrieved successfully.
+        '404':
+          description: No preference records found for this profile.
+        '500':
+          description: Failed to retrieve preferences.
+
+  /preferences/{profile_id}/{genre_id}:
+    delete:
+      summary: Delete preference record by profile ID and genre ID
+      parameters:
+        - name: profile_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: genre_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Preference record deleted successfully.
+        '404':
+          description: Preference record not found.
+        '500':
+          description: Failed to delete preference. 
+  /movies:
+    get:
+      summary: Get all movies
+      responses:
+        '200':
+          description: List of all movies.
+        '500':
+          description: Failed to retrieve movies.
+
+  /movies/{id}:
+    get:
+      summary: Get movie by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Movie details fetched successfully.
+        '404':
+          description: Movie not found.
+        '500':
+          description: Failed to retrieve movie.
+
+  /movies/title/{title}:
+    get:
+      summary: Get movies by title
+      parameters:
+        - name: title
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Movies fetched by title.
+        '404':
+          description: No movies found with this title.
+        '500':
+          description: Failed to retrieve movies.
+
+  /movies/genre/{genre_name}:
+    get:
+      summary: Get movies by genre
+      parameters:
+        - name: genre_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Movies fetched by genre.
+        '404':
+          description: No movies found for this genre.
+        '500':
+          description: Failed to retrieve movies.
+  /movies/profile/{profile_id}:
+    get:
+      summary: Get movies by profile preferences
+      parameters:
+        - name: profile_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Movies fetched by profile preferences.
+        '404':
+          description: No preferred movies found for this profile.
+        '500':
+          description: Failed to retrieve preferred movies.
+  /languages/create:
+    post:
+      summary: Create a new language
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: English
+      responses:
+        '201':
+          description: Language created successfully.
+        '422':
+          description: Validation error.
+        '500':
+          description: Server error.
+
+  /languages:
+    get:
+      summary: Get all languages
+      responses:
+        '200':
+          description: List of all languages.
+        '404':
+          description: No languages found.
+        '500':
+          description: Failed to retrieve languages.
+
+  /languages/{language_id}:
+    get:
+      summary: Get language by ID
+      parameters:
+        - name: language_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Language details fetched successfully.
+        '400':
+          description: Language ID is required.
+        '404':
+          description: Language not found.
+        '500':
+          description: Failed to retrieve language.
+
+    put:
+      summary: Update language by ID
+      parameters:
+        - name: language_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: French
+      responses:
+        '200':
+          description: Language updated successfully.
+        '400':
+          description: Language ID is required.
+        '422':
+          description: Validation failed.
+        '404':
+          description: Language not found.
+        '500':
+          description: Failed to update language.
+
+    delete:
+      summary: Delete language by ID
+      parameters:
+        - name: language_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Language deleted successfully.
+        '400':
+          description: Language ID is required.
+        '404':
+          description: Language not found.
+        '500':
+          description: Failed to delete language.
+
