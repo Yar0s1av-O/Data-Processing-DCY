@@ -17,6 +17,7 @@ const SubtitleService = require('./services/SubtitleService');
 const WatchableService = require('./services/WatchableService');
 const MovieService = require('./services/MovieService');
 const SeriesService = require('./services/SeriesService');
+const GenreService = require('./services/GenreService');
 const js2xmlparser = require("js2xmlparser");
 const setupSwagger = require("./swagger");
 const TokenService = require('./services/TokenService');
@@ -88,7 +89,8 @@ class App {
             {path: '/subtitles', service: new SubtitleService(this.db)},
             {path: '/watchable', service: new WatchableService(this.db)},
             {path: '/movie', service: new MovieService(this.db)},
-            {path: '/series', service:new SeriesService(this.db)}
+            {path: '/series', service:new SeriesService(this.db)},
+            {path: '/genre', service: new GenreService(this.db)}
         ];
         const tokenService = new TokenService();
 
