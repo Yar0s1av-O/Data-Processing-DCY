@@ -1,4 +1,4 @@
-// validators/SubscriptionValidator.js
+
 const Joi = require("joi");
 
 const validateCreateSubscription = (data) =>
