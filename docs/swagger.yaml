@@ -982,7 +982,7 @@ paths:
           description: No preferred movies found for this profile.
         '500':
           description: Failed to retrieve preferred movies.
-  /languages/create:
+  /language/create:
     post:
       summary: Create a new language
       requestBody:
@@ -1003,7 +1003,7 @@ paths:
         '500':
           description: Server error.
 
-  /languages:
+  /language:
     get:
       summary: Get all languages
       responses:
@@ -1014,7 +1014,7 @@ paths:
         '500':
           description: Failed to retrieve languages.
 
-  /languages/{language_id}:
+  /language/{language_id}:
     get:
       summary: Get language by ID
       parameters:
