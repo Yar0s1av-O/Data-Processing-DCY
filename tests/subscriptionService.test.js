@@ -3,10 +3,11 @@ const express = require("express");
 const SubscriptionService = require("../services/SubscriptionService");
 const SubscriptionRepository = require("../repositories/SubscriptionRepository");
 
-// Mock database
+// Mock database connection and repo
 const mockDb = { query: jest.fn() };
 const mockRepo = new SubscriptionRepository(mockDb);
 
+// Spy on methods in the mock repo
 jest.spyOn(mockRepo, "create");
 jest.spyOn(mockRepo, "pay");
 jest.spyOn(mockRepo, "getAll");
@@ -17,7 +18,7 @@ jest.spyOn(mockRepo, "delete");
 let app;
 
 beforeAll(() => {
-  const service = new SubscriptionService(mockDb, mockRepo);
+  const service = new SubscriptionService(mockDb, mockRepo); // Pass mockRepo explicitly
   app = express();
   app.use(express.json());
   app.use("/subscriptions", service.getRouter());
@@ -29,17 +30,16 @@ afterEach(() => {
 
 describe("SubscriptionService API Tests", () => {
   it("should create a subscription", async () => {
-    mockRepo.create.mockResolvedValue();
+    mockRepo.create.mockResolvedValue(); // Simulate success
 
     const res = await request(app).post("/subscriptions/create").send({
-      subscription_type_id: 1,
       subscription_name: "Premium",
-      subscription_price_euro: 9.99,
+      subscription_price_euro: 9.99
     });
 
     expect(res.statusCode).toBe(201);
     expect(res.body.message).toMatch(/created/i);
-    expect(mockRepo.create).toHaveBeenCalled();
+    expect(mockRepo.create).toHaveBeenCalledWith("Premium", 9.99);
   });
 
   it("should reject invalid create request", async () => {
@@ -54,7 +54,7 @@ describe("SubscriptionService API Tests", () => {
 
     const res = await request(app).post("/subscriptions/pay").send({
       userid: 1,
-      subscription_type_id: 2,
+      subscription_type_id: 2
     });
 
     expect(res.statusCode).toBe(200);
@@ -62,7 +62,7 @@ describe("SubscriptionService API Tests", () => {
   });
 
   it("should return all subscriptions", async () => {
-    const subscriptions = [{ id: 1, subscription_name: "Basic" }];
+    const subscriptions = [{ subscription_type_id: 1, subscription_name: "Basic", subscription_price_euro: 4.99 }];
     mockRepo.getAll.mockResolvedValue({ rows: subscriptions });
 
     const res = await request(app).get("/subscriptions");
@@ -72,7 +72,7 @@ describe("SubscriptionService API Tests", () => {
   });
 
   it("should return subscription by ID", async () => {
-    const sub = { subscription_type_id: 2, subscription_name: "Pro" };
+    const sub = { subscription_type_id: 2, subscription_name: "Pro", subscription_price_euro: 12.99 };
     mockRepo.getById.mockResolvedValue({ rows: [sub] });
 
     const res = await request(app).get("/subscriptions/2");
@@ -124,4 +124,3 @@ describe("SubscriptionService API Tests", () => {
     expect(res.statusCode).toBe(404);
   });
 });
-

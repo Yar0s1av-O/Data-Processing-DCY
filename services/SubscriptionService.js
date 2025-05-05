@@ -17,9 +17,9 @@ function formatResponse(req, res, data, status = 200) {
 }
 
 class SubscriptionService {
-  constructor(db) {
+  constructor(db, repo = null) {
     this.db = db;
-    this.subscriptionRepo = new SubscriptionRepository(this.db);
+    this.subscriptionRepo = repo || new SubscriptionRepository(this.db);
     this.router = express.Router();
     this.initializeRoutes();
   }
@@ -39,7 +39,7 @@ class SubscriptionService {
       return formatResponse(req, res, { message: error.details.map(err => err.message) }, 422);
     }
 
-    const {subscription_name, subscription_price_euro } = req.body;
+    const { subscription_name, subscription_price_euro } = req.body;
 
     try {
       await this.subscriptionRepo.create(subscription_name, subscription_price_euro);
@@ -60,7 +60,7 @@ class SubscriptionService {
 
     try {
       const result = await this.subscriptionRepo.pay(userid, subscription_type_id);
-      const statusCode = result.rows[0]?.status_code || null;
+      const statusCode = result.rows?.[0]?.status_code;
 
       switch (statusCode) {
         case 404:
@@ -95,10 +95,9 @@ class SubscriptionService {
 
     try {
       const result = await this.subscriptionRepo.getById(id);
-      if (result.rows.length === 0) {
+      if (!result.rows.length) {
         return formatResponse(req, res, { message: "Subscription not found." }, 404);
       }
-
       formatResponse(req, res, result.rows[0], 200);
     } catch (err) {
       console.error(`Error fetching subscription by ID (${id}):`, err.stack);
@@ -117,8 +116,7 @@ class SubscriptionService {
 
     try {
       const result = await this.subscriptionRepo.update(id, subscription_name, subscription_price_euro);
-
-      if (result.rows.length === 0) {
+      if (!result.rows.length) {
         return formatResponse(req, res, { message: "Subscription not found." }, 404);
       }
 
@@ -137,8 +135,7 @@ class SubscriptionService {
 
     try {
       const result = await this.subscriptionRepo.delete(id);
-
-      if (result.rows.length === 0) {
+      if (!result.rows.length) {
         return formatResponse(req, res, { message: "Subscription not found." }, 404);
       }
 
