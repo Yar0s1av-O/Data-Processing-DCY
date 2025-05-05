@@ -46,6 +46,8 @@ DB_PASSWORD=your_password
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_REDIRECT_URL=http://localhost:4000/auth/google/callback
+JWT_SECRET=your_jwt_secret
+
 ```
 > **Note:** Ensure the `.env` file is included in `.gitignore` to prevent accidental commits.
 

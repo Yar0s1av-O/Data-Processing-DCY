@@ -7,6 +7,7 @@ const {
 } = require("../validators/SubscriptionValidator");
 const SubscriptionRepository = require("../repositories/SubscriptionRepository");
 
+
 function formatResponse(req, res, data, status = 200) {
   const format = req.query.format;
   if (format === "xml") {
