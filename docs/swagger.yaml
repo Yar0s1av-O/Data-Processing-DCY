@@ -771,7 +771,7 @@ paths:
           description: No preferred series found.
         '500':
           description: Failed to retrieve preferred series.
-  /qualities/create:
+  /quality/create:
     post:
       summary: Create a new quality
       requestBody:
@@ -792,7 +792,7 @@ paths:
         '500':
           description: Server error.
 
-  /qualities:
+  /quality:
     get:
       summary: Get all qualities
       responses:
@@ -803,7 +803,7 @@ paths:
         '500':
           description: Failed to retrieve qualities.
 
-  /qualities/{quality_id}:
+  /quality/{quality_id}:
     put:
       summary: Update quality by ID
       parameters:
@@ -847,7 +847,7 @@ paths:
           description: Quality not found.
         '500':
           description: Failed to delete quality.
-  /preferences/create:
+  /preference/create:
     post:
       summary: Create a new preference
       requestBody:
@@ -869,7 +869,7 @@ paths:
         '500':
           description: Server error.
 
-  /preferences/{profile_id}:
+  /preference/{profile_id}:
     get:
       summary: Get preferences by profile ID
       parameters:
@@ -886,7 +886,7 @@ paths:
         '500':
           description: Failed to retrieve preferences.
 
-  /preferences/{profile_id}/{genre_id}:
+  /preference/{profile_id}/{genre_id}:
     delete:
       summary: Delete preference record by profile ID and genre ID
       parameters:
@@ -907,7 +907,7 @@ paths:
           description: Preference record not found.
         '500':
           description: Failed to delete preference. 
-  /movies:
+  /movie:
     get:
       summary: Get all movies
       responses:
@@ -916,7 +916,7 @@ paths:
         '500':
           description: Failed to retrieve movies.
 
-  /movies/{id}:
+  /movie/{id}:
     get:
       summary: Get movie by ID
       parameters:
@@ -933,7 +933,7 @@ paths:
         '500':
           description: Failed to retrieve movie.
 
-  /movies/title/{title}:
+  /movie/title/{title}:
     get:
       summary: Get movies by title
       parameters:
@@ -950,7 +950,7 @@ paths:
         '500':
           description: Failed to retrieve movies.
 
-  /movies/genre/{genre_name}:
+  /movie/genre/{genre_name}:
     get:
       summary: Get movies by genre
       parameters:
@@ -966,7 +966,7 @@ paths:
           description: No movies found for this genre.
         '500':
           description: Failed to retrieve movies.
-  /movies/profile/{profile_id}:
+  /movie/profile/{profile_id}:
     get:
       summary: Get movies by profile preferences
       parameters:
@@ -982,7 +982,7 @@ paths:
           description: No preferred movies found for this profile.
         '500':
           description: Failed to retrieve preferred movies.
-  /languages/create:
+  /language/create:
     post:
       summary: Create a new language
       requestBody:
@@ -1003,7 +1003,7 @@ paths:
         '500':
           description: Server error.
 
-  /languages:
+  /language:
     get:
       summary: Get all languages
       responses:
@@ -1014,7 +1014,7 @@ paths:
         '500':
           description: Failed to retrieve languages.
 
-  /languages/{language_id}:
+  /language/{language_id}:
     get:
       summary: Get language by ID
       parameters:
@@ -1081,3 +1081,199 @@ paths:
         '500':
           description: Failed to delete language.
 
+  /watchables/create:
+    post:
+      summary: Create a new watchable
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: "Inception"
+                description:
+                  type: string
+                  example: "A mind-bending thriller"
+                genre_id:
+                  type: integer
+                  example: 2
+                duration:
+                  type: integer
+                  example: 148
+                season:
+                  type: integer
+                  example: 1
+                episode:
+                  type: integer
+                  example: 1
+      responses:
+        '201':
+          description: Watchable created successfully.
+        '422':
+          description: Validation failed.
+        '500':
+          description: Server error.
+
+  /watchable:
+    get:
+      summary: Get all watchable
+      parameters:
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ json, xml ]
+      responses:
+        '200':
+          description: List of all watchables.
+        '500':
+          description: Failed to retrieve watchables.
+
+  /watchable/{id}:
+    get:
+      summary: Get a watchable by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ json, xml ]
+      responses:
+        '200':
+          description: Watchable found.
+        '404':
+          description: Watchable not found.
+        '500':
+          description: Failed to retrieve watchable.
+
+    put:
+      summary: Update a watchable
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                genre_id:
+                  type: integer
+                duration:
+                  type: integer
+                season:
+                  type: integer
+                episode:
+                  type: integer
+      responses:
+        '200':
+          description: Watchable updated successfully.
+        '404':
+          description: Watchable not found.
+        '422':
+          description: Validation failed.
+        '500':
+          description: Failed to update watchable.
+
+    delete:
+      summary: Delete a watchable
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Watchable deleted successfully.
+        '404':
+          description: Watchable not found.
+        '500':
+          description: Failed to delete watchable.
+
+  /watchable/title/{title}:
+    get:
+      summary: Get watchable by title
+      parameters:
+        - name: title
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ json, xml ]
+      responses:
+        '200':
+          description: Watchable matching title.
+        '404':
+          description: No watchable found with this title.
+        '500':
+          description: Failed to retrieve watchable by title.
+
+  /watchable/genre/{genre_name}:
+    get:
+      summary: Get watchable by genre name
+      parameters:
+        - name: genre_name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ json, xml ]
+      responses:
+        '200':
+          description: Watchable matching genre.
+        '404':
+          description: No watchable found for this genre.
+        '500':
+          description: Failed to retrieve watchable by genre.
+
+  /watchable/preferences/{profile_id}:
+    get:
+      summary: Get watchable based on user profile preferences
+      parameters:
+        - name: profile_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ json, xml ]
+      responses:
+        '200':
+          description: Watchable matching profile preferences.
+        '404':
+          description: No watchable found for the given profile preferences.
+        '500':
+          description: Failed to retrieve watchable.
