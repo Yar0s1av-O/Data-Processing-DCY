@@ -162,7 +162,7 @@ paths:
           description: Invitation sent
         '409':
           description: Already invited
-        /profiles/create:
+  /profiles/create:
     post:
       summary: Create a new profile
       requestBody:
@@ -906,7 +906,7 @@ paths:
         '404':
           description: Preference record not found.
         '500':
-          description: Failed to delete preference. 
+          description: Failed to delete preference.
   /movie:
     get:
       summary: Get all movies
