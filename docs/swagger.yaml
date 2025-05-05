@@ -1081,7 +1081,7 @@ paths:
         '500':
           description: Failed to delete language.
 
-  /watchables/create:
+  /watchable/create:
     post:
       summary: Create a new watchable
       requestBody:
@@ -1102,7 +1102,7 @@ paths:
                   example: 2
                 duration:
                   type: integer
-                  example: 148
+                  example: "02:00:00"
                 season:
                   type: integer
                   example: 1
@@ -1277,3 +1277,109 @@ paths:
           description: No watchable found for the given profile preferences.
         '500':
           description: Failed to retrieve watchable.
+
+  /genre/create:
+    post:
+      summary: Create a new genre
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                genre_name:
+                  type: string
+                  example: Action
+      responses:
+        '201':
+          description: Genre created successfully.
+        '422':
+          description: Validation failed.
+        '500':
+          description: Server error.
+
+
+  /genre:
+    get:
+      summary: Get all genres
+      parameters:
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ json, xml ]
+      responses:
+        '200':
+          description: List of all genres.
+        '500':
+          description: Failed to retrieve genres.
+
+
+  /genre/{id}:
+    get:
+      summary: Get a genre by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ json, xml ]
+      responses:
+        '200':
+          description: Genre found.
+        '404':
+          description: Genre not found.
+        '500':
+          description: Failed to retrieve genre.
+
+    put:
+      summary: Update a genre
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                genre_name:
+                  type: string
+                  example: Comedy
+      responses:
+        '200':
+          description: Genre updated successfully.
+        '404':
+          description: Genre not found.
+        '422':
+          description: Validation failed.
+        '500':
+          description: Failed to update genre.
+
+    delete:
+      summary: Delete a genre
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Genre deleted successfully.
+        '404':
+          description: Genre not found.
+        '500':
+          description: Failed to delete genre.
